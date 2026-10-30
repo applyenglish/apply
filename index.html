@@ -33,7 +33,7 @@
     <style>
         /* --- Estilos Generales --- */
         body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; overflow-x: hidden; }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         .dark body { background-color: var(--tw-colors-dark-background); color: white; }
 
         /* --- Estilos Pantalla de Carga (Splash Screen) --- */
@@ -115,8 +115,8 @@
 
         /* --- Estilos para iconos de feedback de pronunciación --- */
         .feedback-icon {
-            width: 24px;
-            height: 24px;
+            width: 32px;
+            height: 32px;
             margin-left: 8px;
             transform: scale(0);
             animation: pop-in-icon 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
@@ -142,6 +142,18 @@
         }
         @keyframes draw-x {
             to { stroke-dashoffset: 0; }
+        }
+        
+        .phonetic-text {
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            font-size: 0.9rem;
+            color: #0d9488; /* teal-600 */
+            margin-top: 4px;
+            font-style: italic;
+        }
+        .dark .phonetic-text {
+            color: #2dd4bf; /* teal-400 */
         }
 
         /* --- Ajustes responsivos para botones de voz --- */
@@ -172,6 +184,9 @@
             <div id="splash-actions" class="mt-10 w-full max-w-xs mx-auto space-y-3">
                  <button id="splash-login-btn" onclick="window.appLogic.openAuthModal('login')" class="w-full py-3 px-6 text-lg font-semibold text-white bg-orange-400 rounded-full shadow-lg hover:bg-orange-500 transition-transform transform hover:scale-105">Iniciar Sesión</button>
                  <button id="splash-register-btn" onclick="window.appLogic.openAuthModal('register')" class="w-full py-3 px-6 text-lg font-semibold text-indigo-700 bg-white border-2 border-indigo-200 rounded-full hover:bg-indigo-50 dark:bg-dark-surface dark:text-indigo-300 dark:border-indigo-500 dark:hover:bg-dark-container transition-transform transform hover:scale-105">Crear Cuenta</button>
+                 <button id="enable-mic-btn" onclick="window.appLogic.requestMicPermission()" class="w-full py-3 px-6 text-base font-semibold text-purple-700 bg-purple-100 border-2 border-purple-200 rounded-full hover:bg-purple-200 dark:bg-dark-surface dark:text-purple-300 dark:border-purple-500 dark:hover:bg-dark-container transition-all transform hover:scale-105 flex items-center justify-center">
+                    <i class="fa-solid fa-microphone-slash mr-2"></i> Habilitar Micrófono
+                 </button>
                  <button id="start-button" onclick="window.authFunctions.continueWithoutAccount()" class="mt-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:underline">Continuar &rarr;</button>
             </div>
         </div>
@@ -185,7 +200,8 @@
             </button>
             <form id="login-form" class="space-y-4 auth-form">
                 <h2 class="text-2xl font-bold text-center mb-4 gradient-text">Iniciar Sesión</h2>
-                <button type="button" class="google-btn" onclick="loginWithGoogle()"><img src="https://www.google.com/favicon.ico" alt="Google icon"><span>Ingresar con Google</span></button>
+                <button type="button" class="google-btn" onclick="loginWithGoogle()"><img src="https://www.google.com/favicon.ico" alt="Google icon"><span id="google-btn-text">Ingresar con Google</span></button>
+                <p id="google-error" class="text-red-500 text-xs text-center hidden"></p>
                 <div class="flex items-center my-4"><hr class="w-full border-gray-300 dark:border-gray-600"><span class="px-2 text-sm text-gray-500">o</span><hr class="w-full border-gray-300 dark:border-gray-600"></div>
                 <div><label for="login-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label><input type="email" id="login-email" class="form-input" required></div>
                 <div><label for="login-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contraseña</label><input type="password" id="login-password" class="form-input" required></div>
@@ -289,26 +305,25 @@
           onAuthStateChanged,
           GoogleAuthProvider,
           signInWithRedirect,
+          signInWithPopup,
           getRedirectResult,
           signOut,
           createUserWithEmailAndPassword,
           signInWithEmailAndPassword,
           updateProfile,
-          signInAnonymously,
-          signInWithCustomToken
+          signInAnonymously
       } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
       
-      // La configuración de Firebase es proporcionada por el entorno de ejecución.
-      const firebaseConfig = typeof __firebase_config !== 'undefined'
-        ? JSON.parse(__firebase_config)
-        : {
-            apiKey: "PON_TU_API_KEY_AQUÍ",
-            authDomain: "PON_TU_AUTH_DOMAIN_AQUÍ",
-            projectId: "PON_TU_PROJECT_ID_AQUÍ",
-            storageBucket: "PON_TU_STORAGE_BUCKET_AQUÍ",
-            messagingSenderId: "PON_TU_MESSAGING_SENDER_ID_AQUÍ",
-            appId: "PON_TU_APP_ID_AQUÍ"
-          };
+      // Configuración de Firebase con tus credenciales
+      const firebaseConfig = {
+          apiKey: "AIzaSyBYfwLUFKmmz8lyeJ5uQIIdSYNiklN5N4Q",
+          authDomain: "apply-english.firebaseapp.com",
+          projectId: "apply-english",
+          storageBucket: "apply-english.firebasestorage.app",
+          messagingSenderId: "365585523840",
+          appId: "1:365585523840:web:db9b6161d31ee981c57265",
+          measurementId: "G-2SJM5WP1V9"
+      };
 
       // Inicializar Firebase
       const app = initializeApp(firebaseConfig);
@@ -318,10 +333,35 @@
       // Hacer las funciones de autenticación accesibles globalmente
       window.authFunctions = {
           loginWithGoogle: async () => {
+              const errorEl = document.getElementById('google-error');
+              const btnText = document.getElementById('google-btn-text');
+              if (errorEl) { errorEl.textContent = ''; errorEl.classList.add('hidden'); }
+              if (btnText) btnText.textContent = 'Conectando...';
+
               try {
-                  await signInWithRedirect(auth, googleProvider);
+                  // Intenta abrir ventana emergente (Popup)
+                  await signInWithPopup(auth, googleProvider);
               } catch (error) {
-                  console.error("Error al iniciar la redirección con Google:", error);
+                  console.warn("Popup bloqueado o fallo, intentando redirección...", error);
+                  if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+                      try {
+                          await signInWithRedirect(auth, googleProvider);
+                      } catch (redirectError) {
+                          console.error("Error al iniciar con Redirección:", redirectError);
+                          if (errorEl) {
+                              errorEl.textContent = 'Asegúrate de agregar este dominio en tu consola de Firebase (Authentication > Settings > Authorized domains).';
+                              errorEl.classList.remove('hidden');
+                          }
+                      }
+                  } else {
+                      console.error("Error al iniciar sesión con Google:", error);
+                      if (errorEl) {
+                          errorEl.textContent = getFirebaseErrorMessage(error);
+                          errorEl.classList.remove('hidden');
+                      }
+                  }
+              } finally {
+                  if (btnText) btnText.textContent = 'Ingresar con Google';
               }
           },
           registerUser: async (event) => {
@@ -335,6 +375,7 @@
                   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                   await updateProfile(userCredential.user, { displayName: name });
                   window.appLogic.closeAuthModal({target: {id: ''}}, true);
+                  window.appLogic.showAppContent(); 
               } catch (error) {
                   console.error("Error durante el registro:", error);
                   errorEl.textContent = getFirebaseErrorMessage(error);
@@ -349,6 +390,7 @@
               try {
                   await signInWithEmailAndPassword(auth, email, password);
                   window.appLogic.closeAuthModal({target: {id: ''}}, true);
+                  window.appLogic.showAppContent();
               } catch (error) {
                   console.error("Error durante el inicio de sesión:", error);
                   errorEl.textContent = getFirebaseErrorMessage(error);
@@ -363,16 +405,13 @@
           },
           continueWithoutAccount: () => {
               const appState = window.appLogic.getState();
-              // Se crea un objeto de usuario simulado para que la app funcione
               appState.currentUser = {
                   name: 'Invitado',
-                  uid: 'guest_' + Date.now(), // ID único para la sesión
+                  uid: 'guest_' + Date.now(),
                   isAnonymous: true,
                   photoURL: 'https://i.pravatar.cc/40?u=a042581f4e29026704d'
               };
-              // Se actualiza la UI para mostrar "Invitado"
               window.appLogic.updateAuthUI();
-              // Se muestra el contenido principal de la aplicación
               window.appLogic.showAppContent();
           }
       };
@@ -380,78 +419,153 @@
       // --- DATA STORE (COMPLETO) ---
       const lessonsData = {
           cotidiana: { title: 'Vida Cotidiana', icon: 'fa-house', style: { bg: 'bg-cyan-100', darkBg: 'dark:bg-cyan-900/50', hoverBg: 'hover:bg-cyan-200', darkHoverBg: 'dark:hover:bg-cyan-800/50', ring: 'focus:ring-cyan-500', text: 'text-cyan-800', progress: 'text-peach-400' }, lessons: [
-              { id: 'c1', title: 'Ordering a Coffee', subtitle: 'Aprende a pedir tu bebida favorita.', image_url: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=2070&auto=format&fit=crop', dialogue: [{ speaker: 'Barista', text: 'Hi there! What can I get for you today?' }, { speaker: 'Tú', text: 'Hello, I\'d like a large latte, please.' }, { speaker: 'Barista', text: 'Sure thing. Will that be all for you?' }, { speaker: 'Tú', text: 'Yes, that\'s everything. Thanks.' }, { speaker: 'Barista', text: 'Okay, that will be $4.50.' }], dialogue_es: [{ speaker: 'Barista', text: '¡Hola! ¿Qué te traigo hoy?' }, { speaker: 'Tú', text: 'Hola, quisiera un latte grande, por favor.' }, { speaker: 'Barista', text: 'Claro que sí. ¿Eso será todo para ti?' }, { speaker: 'Tú', text: 'Sí, eso es todo. Gracias.' }, { speaker: 'Barista', text: 'Perfecto, serían $4.50.' }], tips: ["<b>I'd like...</b> es una forma más educada y común de decir 'I want' (quiero) al ordenar.", "<b>Sure thing</b> es una respuesta informal y amigable que significa 'claro que sí' o 'por supuesto'.", "<b>Will that be all?</b> es la pregunta estándar para saber si terminaste de ordenar."] },
-              { id: 'c2', title: 'Asking for Directions', subtitle: 'Nunca te pierdas en una ciudad nueva.', image_url: 'https://images.unsplash.com/photo-1528642474498-1af0c17fd8c3?q=80&w=2069&auto=format&fit=crop', dialogue: [{ speaker: 'Tú', text: 'Excuse me, could you tell me how to get to the train station?' }, { speaker: 'Local', text: 'Of course. Go straight ahead for two blocks, then turn left. You can\'t miss it.' }, { speaker: 'Tú', text: 'Is it far from here?' }, { speaker: 'Local', text: 'Not at all, it\'s about a 5-minute walk.' }, { speaker: 'Tú', text: 'Thank you so much!' }], dialogue_es: [{ speaker: 'Tú', text: 'Disculpa, ¿me podrías decir cómo llego a la estación de tren?' }, { speaker: 'Local', text: 'Claro. Sigue derecho por dos cuadras y luego gira a la izquierda. Es imposible perderse.' }, { speaker: 'Tú', text: '¿Está muy lejos de aquí?' }, { speaker: 'Local', text: 'Para nada, está como a 5 minutos caminando.' }, { speaker: 'Tú', text: '¡Muchísimas gracias!' }], tips: ["Empieza con <b>Excuse me</b> para llamar la atención de alguien educadamente.", "<b>You can't miss it</b> es una expresión común para decir que algo es muy fácil de encontrar.", "<b>Not at all</b> es una forma enfática de decir 'no' o 'de ninguna manera'."], phrasal_verbs: [ { verb: 'Get to', definition: 'Llegar a un lugar o destino.' } ] },
-              { id: 'c3', title: 'Making a Reservation', subtitle: 'Reserva una mesa en un restaurante.', image_url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070&auto=format&fit=crop', dialogue: [ { speaker: 'Restaurant', text: 'Good evening, "The Corner Bistro". How can I help you?' }, { speaker: 'Tú', text: 'Hi, I\'d like to book a table for two, please.' }, { speaker: 'Restaurant', text: 'Certainly. For what time and date?' }, { speaker: 'Tú', text: 'For this Friday at 8:00 PM.' }, { speaker: 'Restaurant', text: 'Alright. Can I get a name for the booking?' }, { speaker: 'Tú', text: 'Yes, it\'s under the name "Parker".'} ], dialogue_es: [ { speaker: 'Restaurante', text: 'Buenas noches, "The Corner Bistro". ¿Cómo puedo ayudarle?' }, { speaker: 'Tú', text: 'Hola, me gustaría reservar una mesa para dos, por favor.' }, { speaker: 'Restaurante', text: 'Por supuesto. ¿Para qué fecha y hora?' }, { speaker: 'Tú', text: 'Para este viernes a las 8:00 PM.' }, { speaker: 'Restaurante', text: 'Muy bien. ¿A nombre de quién hago la reserva?' }, { speaker: 'Tú', text: 'Sí, a nombre de "Parker".'} ], tips: ["<b>Book a table</b> es otra forma común de decir 'reservar una mesa'.", "<b>Certainly</b> es una respuesta formal y afirmativa, similar a 'of course'.", "<b>Under the name...</b> se usa para indicar a nombre de quién se hace la reserva."], phrasal_verbs: [ { verb: 'Book for', definition: 'Reservar para una fecha u hora específica.'} ] },
-              { id: 'c4', title: 'Talking About Hobbies', subtitle: 'Comparte tus pasatiempos e intereses.', image_url: 'https://images.unsplash.com/photo-1501555088652-021faa106b9b?q=80&w=2073&auto=format&fit=crop', dialogue: [ { speaker: 'Amigo/a', text: 'So, what do you like to do in your free time?' }, { speaker: 'Tú', text: 'Well, I\'m really into hiking. I try to go every weekend.' }, { speaker: 'Amigo/a', text: 'That sounds fun! I usually just hang out with friends.' }, { speaker: 'Tú', text: 'That\'s cool too. We should catch up sometime.' } ], dialogue_es: [ { speaker: 'Amigo/a', text: 'Y, ¿qué te gusta hacer en tu tiempo libre?' }, { speaker: 'Tú', text: 'Bueno, me gusta mucho el senderismo. Intento ir todos los fines de semana.' }, { speaker: 'Amigo/a', text: '¡Suena divertido! Yo normalmente paso el rato con amigos.' }, { speaker: 'Tú', text: 'Eso también es genial. Deberíamos ponernos al día alguna vez.' } ], tips: ["<b>Be into something</b> significa que algo te gusta mucho o te interesa.", "<b>Free time</b> o <b>spare time</b> se refieren al tiempo libre.", "<b>Sometime</b> se usa para un momento no especificado en el futuro."], phrasal_verbs: [ { verb: 'Hang out', definition: 'Pasar el rato o socializar de manera informal.' }, { verb: 'Catch up', definition: 'Ponerse al día con alguien con quien no has hablado en un tiempo.' } ] } ] },
+              { id: 'c1', title: 'Ordering a Coffee', subtitle: 'Aprende a pedir tu bebida favorita.', image_url: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=2070&auto=format&fit=crop', 
+                dialogue: [
+                    { speaker: 'Barista', text: 'Hi there! What can I get for you today?', phonetic: 'jai der! uat can ai get for yu tudei?' }, 
+                    { speaker: 'Tú', text: 'Hello, I\'d like a large latte, please.', phonetic: 'jelou, aid laik a larch latey, plis.' }, 
+                    { speaker: 'Barista', text: 'Sure thing. Will that be all for you?', phonetic: 'shur zing. uil dat bi ol for yu?' }, 
+                    { speaker: 'Tú', text: 'Yes, that\'s everything. Thanks.', phonetic: 'yes, dats evrizing. zenks.' }, 
+                    { speaker: 'Barista', text: 'Okay, that will be $4.50.', phonetic: 'oukey, dat uil bi for fifti.' }
+                ], 
+                dialogue_es: [{ speaker: 'Barista', text: '¡Hola! ¿Qué te traigo hoy?' }, { speaker: 'Tú', text: 'Hola, quisiera un latte grande, por favor.' }, { speaker: 'Barista', text: 'Claro que sí. ¿Eso será todo para ti?' }, { speaker: 'Tú', text: 'Sí, eso es todo. Gracias.' }, { speaker: 'Barista', text: 'Perfecto, serían $4.50.' }], tips: ["<b>I'd like...</b> es una forma más educada y común de decir 'I want' (quiero) al ordenar.", "<b>Sure thing</b> es una respuesta informal y amigable que significa 'claro que sí' o 'por supuesto'.", "<b>Will that be all?</b> es la pregunta estándar para saber si terminaste de ordenar."] },
+              { id: 'c2', title: 'Asking for Directions', subtitle: 'Nunca te pierdas en una ciudad nueva.', image_url: 'https://images.unsplash.com/photo-1528642474498-1af0c17fd8c3?q=80&w=2069&auto=format&fit=crop', 
+                dialogue: [
+                    { speaker: 'Tú', text: 'Excuse me, could you tell me how to get to the train station?', phonetic: 'exquius mi, cud yu tel mi jau tu get tu de trein steishon?' }, 
+                    { speaker: 'Local', text: 'Of course. Go straight ahead for two blocks, then turn left. You can\'t miss it.', phonetic: 'of cors. gou streit ajed for tu bloks, den torn left. yu cant mis it.' }, 
+                    { speaker: 'Tú', text: 'Is it far from here?', phonetic: 'is it far from jir?' }, 
+                    { speaker: 'Local', text: 'Not at all, it\'s about a 5-minute walk.', phonetic: 'not at ol, its abaut a faiv-minut uok.' }, 
+                    { speaker: 'Tú', text: 'Thank you so much!', phonetic: 'zenk yu so mach!' }
+                ], 
+                dialogue_es: [{ speaker: 'Tú', text: 'Disculpa, ¿me podrías decir cómo llego a la estación de tren?' }, { speaker: 'Local', text: 'Claro. Sigue derecho por dos cuadras y luego gira a la izquierda. Es imposible perderse.' }, { speaker: 'Tú', text: '¿Está muy lejos de aquí?' }, { speaker: 'Local', text: 'Para nada, está como a 5 minutos caminando.' }, { speaker: 'Tú', text: '¡Muchísimas gracias!' }], tips: ["Empieza con <b>Excuse me</b> para llamar la atención de alguien educadamente.", "<b>You can't miss it</b> es una expresión común para decir que algo es muy fácil de encontrar.", "<b>Not at all</b> es una forma enfática de decir 'no' o 'de ninguna manera'."], phrasal_verbs: [ { verb: 'Get to', definition: 'Llegar a un lugar o destino.' } ] },
+              { id: 'c3', title: 'Making a Reservation', subtitle: 'Reserva una mesa en un restaurante.', image_url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070&auto=format&fit=crop', 
+                dialogue: [ 
+                    { speaker: 'Restaurant', text: 'Good evening, "The Corner Bistro". How can I help you?', phonetic: 'gud ivning, "de corner bistro". jau can ai jelp yu?' }, 
+                    { speaker: 'Tú', text: 'Hi, I\'d like to book a table for two, please.', phonetic: 'jai, aid laik tu buk a teibol for tu, plis.' }, 
+                    { speaker: 'Restaurant', text: 'Certainly. For what time and date?', phonetic: 'sertenli. for uat taim and deit?' }, 
+                    { speaker: 'Tú', text: 'For this Friday at 8:00 PM.', phonetic: 'for dis fraidei at eit pi-em.' }, 
+                    { speaker: 'Restaurant', text: 'Alright. Can I get a name for the booking?', phonetic: 'olrait. can ai get a neim for de buking?' }, 
+                    { speaker: 'Tú', text: 'Yes, it\'s under the name "Parker".', phonetic: 'yes, its ander de neim "parker".'} 
+                ], 
+                dialogue_es: [ { speaker: 'Restaurante', text: 'Buenas noches, "The Corner Bistro". ¿Cómo puedo ayudarle?' }, { speaker: 'Tú', text: 'Hola, me gustaría reservar una mesa para dos, por favor.' }, { speaker: 'Restaurante', text: 'Por supuesto. ¿Para qué fecha y hora?' }, { speaker: 'Tú', text: 'Para este viernes a las 8:00 PM.' }, { speaker: 'Restaurante', text: 'Muy bien. ¿A nombre de quién hago la reserva?' }, { speaker: 'Tú', text: 'Sí, a nombre de "Parker".'} ], tips: ["<b>Book a table</b> es otra forma común de decir 'reservar una mesa'.", "<b>Certainly</b> es una respuesta formal y afirmativa, similar a 'of course'.", "<b>Under the name...</b> se usa para indicar a nombre de quién se hace la reserva."], phrasal_verbs: [ { verb: 'Book for', definition: 'Reservar para una fecha u hora específica.'} ] },
+              { id: 'c4', title: 'Talking About Hobbies', subtitle: 'Comparte tus pasatiempos e intereses.', image_url: 'https://images.unsplash.com/photo-1501555088652-021faa106b9b?q=80&w=2073&auto=format&fit=crop', 
+                dialogue: [ 
+                    { speaker: 'Amigo/a', text: 'So, what do you like to do in your free time?', phonetic: 'so, uat du yu laik tu du in yur fri taim?' }, 
+                    { speaker: 'Tú', text: 'Well, I\'m really into hiking. I try to go every weekend.', phonetic: 'uel, aim rili intu jaiking. ai trai tu gou evri uikend.' }, 
+                    { speaker: 'Amigo/a', text: 'That sounds fun! I usually just hang out with friends.', phonetic: 'dat saunds fan! ai yushuali yost jang aut uiz frends.' }, 
+                    { speaker: 'Tú', text: 'That\'s cool too. We should catch up sometime.', phonetic: 'dats cul tu. ui shud cach ap somtaim.' } 
+                ], 
+                dialogue_es: [ { speaker: 'Amigo/a', text: 'Y, ¿qué te gusta hacer en tu tiempo libre?' }, { speaker: 'Tú', text: 'Bueno, me gusta mucho el senderismo. Intento ir todos los fines de semana.' }, { speaker: 'Amigo/a', text: '¡Suena divertido! Yo normalmente paso el rato con amigos.' }, { speaker: 'Tú', text: 'Eso también es genial. Deberíamos ponernos al día alguna vez.' } ], tips: ["<b>Be into something</b> significa que algo te gusta mucho o te interesa.", "<b>Free time</b> o <b>spare time</b> se refieren al tiempo libre.", "<b>Sometime</b> se usa para un momento no especificado en el futuro."], phrasal_verbs: [ { verb: 'Hang out', definition: 'Pasar el rato o socializar de manera informal.' }, { verb: 'Catch up', definition: 'Ponerse al día con alguien con quien no has hablado en un tiempo.' } ] } ] },
           profesional: { title: 'Vida Profesional', icon: 'fa-briefcase', style: { bg: 'bg-indigo-100', darkBg: 'dark:bg-indigo-900/50', hoverBg: 'hover:bg-indigo-200', darkHoverBg: 'dark:hover:bg-indigo-800/50', ring: 'focus:ring-indigo-500', text: 'text-indigo-800', progress: 'text-peach-400' }, lessons: [
-              { id: 'p1', title: 'A Professional Introduction', subtitle: 'Preséntate con confianza en el trabajo.', image_url: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop', dialogue: [{ speaker: 'Manager', text: 'Everyone, I\'d like to introduce our new Marketing Specialist, Alex.' }, { speaker: 'Alex (Tú)', text: 'Hello everyone. It\'s a pleasure to meet you all. I\'m looking forward to working with you.' }, { speaker: 'Colleague', text: 'Welcome to the team, Alex! We\'re glad to have you.' }], dialogue_es: [{ speaker: 'Jefe/a', text: 'Equipo, quiero presentarles a nuestro/a nuevo/a Especialista de Marketing, Alex.' }, { speaker: 'Alex (Tú)', text: 'Hola a todos. Un placer conocerlos. Estoy con muchas ganas de trabajar con ustedes.' }, { speaker: 'Colega', text: '¡Bienvenido/a al equipo, Alex! Qué bueno tenerte aquí.' }], tips: ["<b>I'd like to introduce...</b> es la frase estándar y formal para presentar a alguien.", "<b>We're glad to have you</b> es una forma cálida y profesional de dar la bienvenida a alguien."], phrasal_verbs: [ { verb: 'Look forward to', definition: 'Esperar algo con entusiasmo o ilusión.' } ] },
-              { id: 'p2', title: 'Writing a Formal Email', subtitle: 'Comunica de forma clara y profesional.', image_url: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?q=80&w=2070&auto=format&fit=crop', dialogue: [{ speaker: 'Subject', text: 'Meeting Follow-up' }, { speaker: 'Body', text: 'Dear Mr. Smith, Thank you for your time today. As discussed, I have attached the project proposal for your review. Please do not hesitate to reach out if you have any questions. Best regards, Jane Doe.' }], dialogue_es: [{ speaker: 'Asunto', text: 'Seguimiento de reunión' }, { speaker: 'Cuerpo', text: 'Estimado Sr. Smith, Gracias por su tiempo el día de hoy. Como conversamos, adjunto la propuesta del proyecto para su revisión. Por favor, no dude en contactarme si tiene alguna pregunta. Atentamente, Jane Doe.' }], tips: ["Usa <b>Dear Mr./Ms. [Apellido]</b> para un saludo formal.", "<b>As discussed</b> (como conversamos) es útil para referirse a una conversación previa."], phrasal_verbs: [ { verb: 'Follow up', definition: 'Dar seguimiento a un asunto o conversación previa.' }, { verb: 'Reach out', definition: 'Contactar o comunicarse con alguien.' } ] },
+              { id: 'p1', title: 'A Professional Introduction', subtitle: 'Preséntate con confianza en el trabajo.', image_url: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop', 
+                dialogue: [
+                    { speaker: 'Manager', text: 'Everyone, I\'d like to introduce our new Marketing Specialist, Alex.', phonetic: 'evriuan, aid laik tu introdus aur niu marketing speshialist, alex.' }, 
+                    { speaker: 'Alex (Tú)', text: 'Hello everyone. It\'s a pleasure to meet you all. I\'m looking forward to working with you.', phonetic: 'jelou evriuan. its a plesher tu mit yu ol. aim luking foruard tu uorking uiz yu.' }, 
+                    { speaker: 'Colleague', text: 'Welcome to the team, Alex! We\'re glad to have you.', phonetic: 'uelcom tu de tim, alex! uir glad tu jav yu.' }
+                ], 
+                dialogue_es: [{ speaker: 'Jefe/a', text: 'Equipo, quiero presentarles a nuestro/a nuevo/a Especialista de Marketing, Alex.' }, { speaker: 'Alex (Tú)', text: 'Hola a todos. Un placer conocerlos. Estoy con muchas ganas de trabajar con ustedes.' }, { speaker: 'Colega', text: '¡Bienvenido/a al equipo, Alex! Qué bueno tenerte aquí.' }], tips: ["<b>I'd like to introduce...</b> es la frase estándar y formal para presentar a alguien.", "<b>We're glad to have you</b> es una forma cálida y profesional de dar la bienvenida a alguien."], phrasal_verbs: [ { verb: 'Look forward to', definition: 'Esperar algo con entusiasmo o ilusión.' } ] },
+              { id: 'p2', title: 'Writing a Formal Email', subtitle: 'Comunica de forma clara y profesional.', image_url: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?q=80&w=2070&auto=format&fit=crop', 
+                dialogue: [
+                    { speaker: 'Subject', text: 'Meeting Follow-up', phonetic: 'miting folou-ap' }, 
+                    { speaker: 'Body', text: 'Dear Mr. Smith, Thank you for your time today. As discussed, I have attached the project proposal for your review. Please do not hesitate to reach out if you have any questions. Best regards, Jane Doe.', phonetic: 'dir mister smiz, zenk yu for yur taim tudei. as discast, ai jav atacht de proyect proposal for yur reviu. plis du not jesiteit tu rich aut if yu jav eni cueschons. best rigards, yein dou.' }
+                ], 
+                dialogue_es: [{ speaker: 'Asunto', text: 'Seguimiento de reunión' }, { speaker: 'Cuerpo', text: 'Estimado Sr. Smith, Gracias por su tiempo el día de hoy. Como conversamos, adjunto la propuesta del proyecto para su revisión. Por favor, no dude en contactarme si tiene alguna pregunta. Atentamente, Jane Doe.' }], tips: ["Usa <b>Dear Mr./Ms. [Apellido]</b> para un saludo formal.", "<b>As discussed</b> (como conversamos) es útil para referirse a una conversación previa."], phrasal_verbs: [ { verb: 'Follow up', definition: 'Dar seguimiento a un asunto o conversación previa.' }, { verb: 'Reach out', definition: 'Contactar o comunicarse con alguien.' } ] },
               { id: 'p3', title: 'Participating in a Meeting', subtitle: 'Comparte tus ideas de forma efectiva.', image_url: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=2070&auto=format&fit=crop', 
                 dialogue: [ 
-                    { speaker: 'Tú', text: 'Can everyone hear me?' },
-                    { speaker: 'Tú', text: 'I\'ll share my screen.' },
-                    { speaker: 'Jefe/a', text: 'Let\'s kick off the meeting. What are your thoughts on the new campaign?' }, 
-                    { speaker: 'Tú', text: 'If I could jump in, I think we should focus on social media.' }, 
-                    { speaker: 'Colega', text: 'I agree with that. We need to build on our online presence.' }, 
-                    { speaker: 'Tú', text: 'Exactly. I can put together a proposal with some ideas.' },
-                    { speaker: 'Tú', text: 'Let\'s circle back to this later.' }
+                    { speaker: 'Tú', text: 'Can everyone hear me?', phonetic: 'can evriuan jir mi?' },
+                    { speaker: 'Tú', text: 'I\'ll share my screen.', phonetic: 'ail sher mai scrin.' },
+                    { speaker: 'Jefe/a', text: 'Let\'s kick off the meeting. What are your thoughts on the new campaign?', phonetic: 'lets kik of de miting. uat ar yur zots on de niu campein?' }, 
+                    { speaker: 'Tú', text: 'If I could jump in, I think we should focus on social media.', phonetic: 'if ai cud yomp in, ai zink ui shud focus on soushal midia.' }, 
+                    { speaker: 'Colega', text: 'I agree with that. We need to build on our online presence.', phonetic: 'ai agri uiz dat. ui nid tu bild on aur onlain presens.' }, 
+                    { speaker: 'Tú', text: 'Exactly. I can put together a proposal with some ideas.', phonetic: 'ecsactli. ai can put tugueder a proposal uiz som aidias.' },
+                    { speaker: 'Tú', text: 'Let\'s circle back to this later.', phonetic: 'lets sercol bak tu dis leiter.' }
                 ], 
-                dialogue_es: [ 
-                    { speaker: 'Tú', text: '¿Todos pueden oírme?' },
-                    { speaker: 'Tú', text: 'Compartiré mi pantalla.' },
-                    { speaker: 'Jefe/a', text: 'Empecemos la reunión. ¿Qué opinan sobre la nueva campaña?' }, 
-                    { speaker: 'Tú', text: 'Si me permiten, creo que deberíamos enfocarnos en las redes sociales.' }, 
-                    { speaker: 'Colega', text: 'Estoy de acuerdo con eso. Necesitamos fortalecer nuestra presencia en línea.' }, 
-                    { speaker: 'Tú', text: 'Exacto. Puedo preparar una propuesta con algunas ideas.' },
-                    { speaker: 'Tú', text: 'Volvamos a esto más tarde.' }
-                ], 
+                dialogue_es: [ { speaker: 'Tú', text: '¿Todos pueden oírme?' }, { speaker: 'Tú', text: 'Compartiré mi pantalla.' }, { speaker: 'Jefe/a', text: 'Empecemos la reunión. ¿Qué opinan sobre la nueva campaña?' }, { speaker: 'Tú', text: 'Si me permiten, creo que deberíamos enfocarnos en las redes sociales.' }, { speaker: 'Colega', text: 'Estoy de acuerdo con eso. Necesitamos fortalecer nuestra presencia en línea.' }, { speaker: 'Tú', text: 'Exacto. Puedo preparar una propuesta con algunas ideas.' }, { speaker: 'Tú', text: 'Volvamos a esto más tarde.' } ], 
                 tips: ["<b>Thoughts on...</b> es una forma de preguntar la opinión de alguien.", "<b>Jump in</b> es una manera informal de interrumpir educadamente para dar tu opinión.", "<b>Build on</b> significa desarrollar o mejorar algo que ya existe.", "<b>Circle back</b> significa volver a un tema más tarde."], 
                 phrasal_verbs: [ { verb: 'Kick off', definition: 'Empezar o iniciar algo (una reunión, un proyecto).' }, { verb: 'Put together', definition: 'Preparar, organizar o ensamblar algo.' }, { verb: 'Circle back', definition: 'Volver a discutir un tema en un momento posterior.' } ] },
-              { id: 'p4', title: 'Asking for Time Off', subtitle: 'Solicita días libres de manera profesional.', image_url: 'https://images.unsplash.com/photo-1562564055-71e051d33c19?q=80&w=2070&auto=format&fit=crop', dialogue: [ { speaker: 'Tú', text: 'Hi, I\'d like to request some time off next month.' }, { speaker: 'Manager', text: 'Okay. How many days are you thinking of?' }, { speaker: 'Tú', text: 'I was hoping to take off the last week of the month, from the 24th to the 28th.' }, { speaker: 'Manager', text: 'Let me check the team calendar. It looks like we can sort that out. Please fill out the official request form.' } ], dialogue_es: [ { speaker: 'Tú', text: 'Hola, me gustaría solicitar unos días libres el próximo mes.' }, { speaker: 'Jefe/a', text: 'De acuerdo. ¿Cuántos días estás pensando?' }, { speaker: 'Tú', text: 'Esperaba tomarme la última semana del mes, del 24 al 28.' }, { speaker: 'Jefe/a', text: 'Déjame revisar el calendario del equipo. Parece que podemos arreglarlo. Por favor, llena el formulario de solicitud oficial.' } ], tips: ["<b>Time off</b> es el término general para referirse a tiempo libre del trabajo (vacaciones, días personales, etc.).", "<b>Take off</b> es la acción de no ir a trabajar por un período.", "<b>Fill out</b> significa completar un formulario."], phrasal_verbs: [ { verb: 'Sort out', definition: 'Resolver un problema o encontrar una solución.' }, { verb: 'Fill out', definition: 'Completar un formulario con información.' } ] } ] },
+              { id: 'p4', title: 'Asking for Time Off', subtitle: 'Solicita días libres de manera profesional.', image_url: 'https://images.unsplash.com/photo-1562564055-71e051d33c19?q=80&w=2070&auto=format&fit=crop', 
+                dialogue: [ 
+                    { speaker: 'Tú', text: 'Hi, I\'d like to request some time off next month.', phonetic: 'jai, aid laik tu ricuest som taim of necst monz.' }, 
+                    { speaker: 'Manager', text: 'Okay. How many days are you thinking of?', phonetic: 'oukey. jau meni deis ar yu zinking of?' }, 
+                    { speaker: 'Tú', text: 'I was hoping to take off the last week of the month, from the 24th to the 28th.', phonetic: 'ai uas joping tu teik of de last uik of de monz, from de tuenti-forz tu de tuenti-eiz.' }, 
+                    { speaker: 'Manager', text: 'Let me check the team calendar. It looks like we can sort that out. Please fill out the official request form.', phonetic: 'let mi chek de tim calendar. it luks laik ui can sort dat aut. plis fil aut de ofishal ricuest form.' } 
+                ], 
+                dialogue_es: [ { speaker: 'Tú', text: 'Hola, me gustaría solicitar unos días libres el próximo mes.' }, { speaker: 'Jefe/a', text: 'De acuerdo. ¿Cuántos días estás pensando?' }, { speaker: 'Tú', text: 'Esperaba tomarme la última semana del mes, del 24 al 28.' }, { speaker: 'Jefe/a', text: 'Déjame revisar el calendario del equipo. Parece que podemos arreglarlo. Por favor, llena el formulario de solicitud oficial.' } ], tips: ["<b>Time off</b> es el término general para referirse a tiempo libre del trabajo (vacaciones, días personales, etc.).", "<b>Take off</b> es la acción de no ir a trabajar por un período.", "<b>Fill out</b> significa completar un formulario."], phrasal_verbs: [ { verb: 'Sort out', definition: 'Resolver un problema o encontrar una solución.' }, { verb: 'Fill out', definition: 'Completar un formulario con información.' } ] } ] },
           viajes: { title: 'Inglés para Viajes', icon: 'fa-plane-departure', style: { bg: 'bg-teal-100', darkBg: 'dark:bg-teal-900/50', hoverBg: 'hover:bg-teal-200', darkHoverBg: 'dark:hover:bg-teal-800/50', ring: 'focus:ring-teal-500', text: 'text-teal-800', progress: 'text-peach-400' }, lessons: [
-              { id: 'v1', title: 'At the Airport', subtitle: 'Frases clave para el check-in y seguridad.', image_url: 'https://images.unsplash.com/photo-1569154941061-e231b4725ef1?q=80&w=2070&auto=format&fit=crop', dialogue: [{ speaker: 'Agent', text: 'Good morning. Passport and ticket, please.' }, { speaker: 'Tú', text: 'Here you are.' }, { speaker: 'Agent', text: 'Have you packed this luggage yourself?' }, { speaker: 'Tú', text: 'Yes, I did.' }, { speaker: 'Agent', text: 'Great. Your gate is B24. Have a nice flight!' }], dialogue_es: [{ speaker: 'Agente', text: 'Buenos días. Pasaporte y boleto de avión, por favor.' }, { speaker: 'Tú', text: 'Aquí tiene.' }, { speaker: 'Agente', text: '¿Usted mismo/a empacó su maleta?' }, { speaker: 'Tú', text: 'Sí, yo la empaqué.' }, { speaker: 'Agente', text: 'Perfecto. Su puerta de embarque es la B24. ¡Que tenga un buen viaje!' }], tips: ["<b>Here you are</b> o <b>Here you go</b> se usan al entregar algo a alguien.", "En el aeropuerto, siempre te preguntarán si empacaste tu propio equipaje por seguridad.", "<b>Gate</b> se refiere a la puerta de embarque."], phrasal_verbs: [ { verb: 'Check in', definition: 'Registrarse (en un aeropuerto u hotel).' } ] },
-              { id: 'v2', title: 'At the Hotel', subtitle: 'Cómo registrarse y pedir ayuda.', image_url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070&auto=format&fit=crop', dialogue: [{ speaker: 'Receptionist', text: 'Good evening. Do you have a reservation with us?' }, { speaker: 'Tú', text: 'Yes, I have a reservation under the name Smith.' }, { speaker: 'Receptionist', text: 'Perfect. Here is your room key. Enjoy your stay.' }, { speaker: 'Tú', text: 'Thank you. Is there Wi-Fi in the room?' }, { speaker: 'Receptionist', text: 'Yes, the network and password are on the key card sleeve.' }], dialogue_es: [{ speaker: 'Recepcionista', text: 'Buenas noches. ¿Tiene una reservación?' }, { speaker: 'Tú', text: 'Sí, a nombre de Smith.' }, { speaker: 'Recepcionista', text: 'Perfecto. Aquí tiene la tarjeta de su cuarto. Disfrute su estadía.' }, { speaker: 'Tú', 'text': 'Gracias. ¿Hay Wi-Fi disponible?' }, { speaker: 'Recepcionista', text: 'Sí, la clave está en el sobre de la tarjeta.' }], tips: ["Usa la frase <b>under the name [Apellido]</b> para indicar a nombre de quién está la reservación.", "<b>Key card</b> es la tarjeta que funciona como llave.", "<b>Sleeve</b> es la fundita o sobre de papel donde viene la tarjeta."] },
+              { id: 'v1', title: 'At the Airport', subtitle: 'Frases clave para el check-in y seguridad.', image_url: 'https://images.unsplash.com/photo-1569154941061-e231b4725ef1?q=80&w=2070&auto=format&fit=crop', 
+                dialogue: [
+                    { speaker: 'Agent', text: 'Good morning. Passport and ticket, please.', phonetic: 'gud morning. pasport and tiket, plis.' }, 
+                    { speaker: 'Tú', text: 'Here you are.', phonetic: 'jir yu ar.' }, 
+                    { speaker: 'Agent', text: 'Have you packed this luggage yourself?', phonetic: 'jav yu pakt dis loguech yurself?' }, 
+                    { speaker: 'Tú', text: 'Yes, I did.', phonetic: 'yes, ai did.' }, 
+                    { speaker: 'Agent', text: 'Great. Your gate is B24. Have a nice flight!', phonetic: 'greit. yur gueit is bi-tuenti-for. jav a nais flait!' }
+                ], 
+                dialogue_es: [{ speaker: 'Agente', text: 'Buenos días. Pasaporte y boleto de avión, por favor.' }, { speaker: 'Tú', text: 'Aquí tiene.' }, { speaker: 'Agente', text: '¿Usted mismo/a empacó su maleta?' }, { speaker: 'Tú', text: 'Sí, yo la empaqué.' }, { speaker: 'Agente', text: 'Perfecto. Su puerta de embarque es la B24. ¡Que tenga un buen viaje!' }], tips: ["<b>Here you are</b> o <b>Here you go</b> se usan al entregar algo a alguien.", "En el aeropuerto, siempre te preguntarán si empacaste tu propio equipaje por seguridad.", "<b>Gate</b> se refiere a la puerta de embarque."], phrasal_verbs: [ { verb: 'Check in', definition: 'Registrarse (en un aeropuerto u hotel).' } ] },
+              { id: 'v2', title: 'At the Hotel', subtitle: 'Cómo registrarse y pedir ayuda.', image_url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070&auto=format&fit=crop', 
+                dialogue: [
+                    { speaker: 'Receptionist', text: 'Good evening. Do you have a reservation with us?', phonetic: 'gud ivning. du yu jav a reserveishon uiz as?' }, 
+                    { speaker: 'Tú', text: 'Yes, I have a reservation under the name Smith.', phonetic: 'yes, ai jav a reserveishon ander de neim smiz.' }, 
+                    { speaker: 'Receptionist', text: 'Perfect. Here is your room key. Enjoy your stay.', phonetic: 'perfect. jir is yur rum ki. enyoi yur stei.' }, 
+                    { speaker: 'Tú', text: 'Thank you. Is there Wi-Fi in the room?', phonetic: 'zenk yu. is der uai-fai in de rum?' }, 
+                    { speaker: 'Receptionist', text: 'Yes, the network and password are on the key card sleeve.', phonetic: 'yes, de netuork and pasuord ar on de ki card sliv.' }
+                ], 
+                dialogue_es: [{ speaker: 'Recepcionista', text: 'Buenas noches. ¿Tiene una reservación?' }, { speaker: 'Tú', text: 'Sí, a nombre de Smith.' }, { speaker: 'Recepcionista', text: 'Perfecto. Aquí tiene la tarjeta de su cuarto. Disfrute su estadía.' }, { speaker: 'Tú', 'text': 'Gracias. ¿Hay Wi-Fi disponible?' }, { speaker: 'Recepcionista', text: 'Sí, la clave está en el sobre de la tarjeta.' }], tips: ["Usa la frase <b>under the name [Apellido]</b> para indicar a nombre de quién está la reservación.", "<b>Key card</b> es la tarjeta que funciona como llave.", "<b>Sleeve</b> es la fundita o sobre de papel donde viene la tarjeta."] },
               { id: 'v3', title: 'Ordering at a Restaurant', subtitle: 'Pide tu comida como un local.', image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop', 
                 dialogue: [ 
-                    { speaker: 'Tú', text: 'A table for two, please.' },
-                    { speaker: 'Tú', text: 'Can I see the menu?' },
-                    { speaker: 'Waiter', text: 'Are you ready to order, or do you need a few more minutes?' }, 
-                    { speaker: 'Tú', text: 'I think we\'re ready. I\'ll have the steak, please.' }, 
-                    { speaker: 'Waiter', text: 'Excellent choice. And how would you like that cooked?' }, 
-                    { speaker: 'Tú', text: 'Medium rare, please. And could we also get some water for the table?' } 
+                    { speaker: 'Tú', text: 'A table for two, please.', phonetic: 'a teibol for tu, plis.' },
+                    { speaker: 'Tú', text: 'Can I see the menu?', phonetic: 'can ai si de meniu?' },
+                    { speaker: 'Waiter', text: 'Are you ready to order, or do you need a few more minutes?', phonetic: 'ar yu redi tu order, or du yu nid a fiu mor minuts?' }, 
+                    { speaker: 'Tú', text: 'I think we\'re ready. I\'ll have the steak, please.', phonetic: 'ai zink uir redi. ail jav de steik, plis.' }, 
+                    { speaker: 'Waiter', text: 'Excellent choice. And how would you like that cooked?', phonetic: 'excelent chois. and jau wud yu laik dat cukt?' }, 
+                    { speaker: 'Tú', text: 'Medium rare, please. And could we also get some water for the table?', phonetic: 'midium rer, plis. and cud ui olso get som uater for de teibol?' } 
                 ], 
-                dialogue_es: [ 
-                    { speaker: 'Tú', text: 'Una mesa para dos, por favor.' },
-                    { speaker: 'Tú', text: '¿Puedo ver el menú?' },
-                    { speaker: 'Camarero', text: '¿Están listos para ordenar o necesitan unos minutos más?' }, 
-                    { speaker: 'Tú', text: 'Creo que estamos listos. Yo tomaré el filete, por favor.' }, 
-                    { speaker: 'Camarero', text: 'Excelente elección. ¿Y cómo le gustaría que estuviera cocido?' }, 
-                    { speaker: 'Tú', text: 'Término medio, por favor. ¿Y podría traernos agua para la mesa?' } 
-                ], 
+                dialogue_es: [ { speaker: 'Tú', text: 'Una mesa para dos, por favor.' }, { speaker: 'Tú', text: '¿Puedo ver el menú?' }, { speaker: 'Camarero', text: '¿Están listos para ordenar o necesitan unos minutos más?' }, { speaker: 'Tú', text: 'Creo que estamos listos. Yo tomaré el filete, por favor.' }, { speaker: 'Camarero', text: 'Excelente elección. ¿Y cómo le gustaría que estuviera cocido?' }, { speaker: 'Tú', text: 'Término medio, por favor. ¿Y podría traernos agua para la mesa?' } ], 
                 tips: ["<b>I'll have...</b> es una forma muy común y directa de ordenar comida.", "Los términos de cocción de la carne más comunes son: <b>rare</b> (rojo), <b>medium rare</b> (rojo-rosado), <b>medium</b> (rosado), <b>medium well</b> (ligeramente rosado), y <b>well-done</b> (bien cocido).", "<b>Could we get...</b> es una forma educada de pedir algo para compartir en la mesa."], },
               { id: 'v4', title: 'Dealing with Lost Luggage', subtitle: 'Qué decir si tu equipaje no aparece.', image_url: 'https://images.pexels.com/photos/5989933/pexels-photo-5989933.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', 
                 dialogue: [ 
-                    { speaker: 'Tú', text: 'Excuse me, my baggage hasn\'t come out on the carousel.' }, 
-                    { speaker: 'Tú', text: 'Where is the lost and found office?' },
-                    { speaker: 'Airline Staff', text: 'I\'m sorry to hear that. Can I see your baggage claim ticket?' }, 
-                    { speaker: 'Tú', text: 'Yes, here it is. It\'s a large, blue suitcase.' }, 
-                    { speaker: 'Airline Staff', text: 'Okay, we need to fill out a report. We will track it down and deliver it to your address.' } 
+                    { speaker: 'Tú', text: 'Excuse me, my baggage hasn\'t come out on the carousel.', phonetic: 'exquius mi, mai baguech jasent com aut on de carousel.' }, 
+                    { speaker: 'Tú', text: 'Where is the lost and found office?', phonetic: 'uer is de lost and faund ofis?' },
+                    { speaker: 'Airline Staff', text: 'I\'m sorry to hear that. Can I see your baggage claim ticket?', phonetic: 'aim sorri tu jir dat. can ai si yur baguech cleim tiket?' }, 
+                    { speaker: 'Tú', text: 'Yes, here it is. It\'s a large, blue suitcase.', phonetic: 'yes, jir it is. its a larch, blu sutkeis.' }, 
+                    { speaker: 'Airline Staff', text: 'Okay, we need to fill out a report. We will track it down and deliver it to your address.', phonetic: 'oukey, ui nid tu fil aut a riport. ui uil trak it daun and deliver it tu yur adres.' } 
                 ], 
-                dialogue_es: [ 
-                    { speaker: 'Tú', text: 'Disculpe, mi equipaje no ha salido en la cinta.' }, 
-                    { speaker: 'Tú', text: '¿Dónde está la oficina de objetos perdidos?' },
-                    { speaker: 'Personal', text: 'Lamento oír eso. ¿Puedo ver su talón de equipaje?' }, 
-                    { speaker: 'Tú', text: 'Sí, aquí está. Es una maleta grande y azul.' }, 
-                    { speaker: 'Personal', text: 'De acuerdo, necesitamos llenar un reporte. Lo rastrearemos y lo enviaremos a su dirección.' } 
-                ], 
+                dialogue_es: [ { speaker: 'Tú', text: 'Disculpe, mi equipaje no ha salido en la cinta.' }, { speaker: 'Tú', text: '¿Dónde está la oficina de objetos perdidos?' }, { speaker: 'Personal', text: 'Lamento oír eso. ¿Puedo ver su talón de equipaje?' }, { speaker: 'Tú', text: 'Sí, aquí está. Es una maleta grande y azul.' }, { speaker: 'Personal', text: 'De acuerdo, necesitamos llenar un reporte. Lo rastrearemos y lo enviaremos a su dirección.' } ], 
                 tips: ["<b>Baggage</b> o <b>luggage</b> son sinónimos para equipaje.", "<b>Carousel</b> o <b>baggage claim</b> es la cinta donde recoges las maletas.", "<b>Baggage claim ticket</b> es el talón o recibo que te dan al documentar tu equipaje."], 
                 phrasal_verbs: [ { verb: 'Come out', definition: 'Salir o aparecer.' }, { verb: 'Track down', definition: 'Rastrear y encontrar algo o a alguien después de una búsqueda.' } ] } ] },
           finanzas: { title: 'Términos Financieros', icon: 'fa-chart-line', style: { bg: 'bg-yellow-100', darkBg: 'dark:bg-yellow-900/50', hoverBg: 'hover:bg-yellow-200', darkHoverBg: 'dark:hover:bg-yellow-800/50', ring: 'focus:ring-yellow-500', text: 'text-yellow-800', progress: 'text-peach-400' }, lessons: [
-              { id: 'f1', title: 'Opening a Bank Account', subtitle: 'Frases clave para trámites bancarios.', image_url: 'https://images.unsplash.com/photo-1553729459-efe14ef6055d?q=80&w=2070&auto=format&fit=crop', dialogue: [{ speaker: 'Tú', text: 'Good morning, I would like to open an account, please.' }, { speaker: 'Banker', text: 'Certainly. I can help with that. Do you prefer a basic account or one with more features?' }, { speaker: 'Tú', text: 'A basic account will be fine. What documents do I need to provide?' }, { speaker: 'Banker', text: 'I will need a valid form of ID and a proof of address.' }, { speaker: 'Tú', text: 'Of course. Here is my passport and a recent utility bill.' }], dialogue_es: [{ speaker: 'Tú', text: 'Buenos días, quisiera abrir una cuenta, por favor.' }, { speaker: 'Ejecutivo/a', text: 'Claro que sí. ¿Prefiere una cuenta básica o una con más beneficios?' }, { speaker: 'Tú', text: 'Una básica está bien. ¿Qué documentos necesito?' }, { speaker: 'Ejecutivo/a', text: 'Necesito una identificación oficial y un comprobante de domicilio.' }, { speaker: 'Tú', text: 'Aquí tiene mi pasaporte y un recibo de luz.' }], tips: ["<b>Checking account</b> es una cuenta corriente para uso diario.", "<b>Proof of address</b> es un documento que prueba dónde vives, como un recibo de servicios (<b>utility bill</b>).", "<b>ID</b> es la abreviatura de 'Identification Document' (documento de identidad)."] },
-              { id: 'f2', title: 'Investing Fundamentals', subtitle: 'Comprende los conceptos básicos de inversión.', image_url: 'https://images.unsplash.com/photo-1624996379697-f01d168b1a52?q=80&w=2070&auto=format&fit=crop', dialogue: [{ speaker: 'Advisor', text: 'Welcome. To get started, could you tell me about your investment goals?' }, { speaker: 'Tú', text: 'I\'m a beginner, so I\'d like to learn about the fundamentals, like stocks and bonds.' }, { speaker: 'Advisor', text: 'Excellent. Stocks represent ownership in a company, while bonds are essentially loans to an entity.' }, { speaker: 'Tú', text: 'I see. And could you explain diversification?' }, { speaker: 'Advisor', text: 'Diversification is key to managing risk. In simple terms, it means not putting all your eggs in one basket.' }], dialogue_es: [{ speaker: 'Asesor/a', text: 'Bienvenido. Para empezar, ¿podría contarme cuáles son sus objetivos de inversión?' }, { speaker: 'Tú', text: 'Soy principiante, por lo que me gustaría aprender sobre los fundamentos, como acciones y bonos.' }, { speaker: 'Asesor/a', text: 'Excelente. Las acciones representan la propiedad de una empresa, mientras que los bonos son esencialmente préstamos a una entidad.' }, { speaker: 'Tú', text: 'Entiendo ¿Y podrías explicar la diversificación?' }, { speaker: 'Asesor/a', text: 'La diversificación es clave para gestionar el riesgo. En términos simples, significa no poner todos los huevos en la misma canasta.' }], tips: ["<b>Stocks</b> (acciones) y <b>Bonds</b> (bonos) son los dos tipos de inversión más comunes.", "<b>Risk</b> (riesgo) es un concepto fundamental en finanzas.", "La frase <b>'not putting all your eggs in one basket'</b> es un dicho popular que significa no arriesgarlo todo en una sola cosa."] },
-              { id: 'f3', title: 'Discussing a Bill', subtitle: 'Aclara dudas sobre un estado de cuenta.', image_url: 'https://images.unsplash.com/photo-1579621970795-87facc2f976d?q=80&w=2070&auto=format&fit=crop', dialogue: [ { speaker: 'Tú', text: 'Hello, I\'m calling about my credit card statement. I think there might be an error.' }, { speaker: 'Agent', text: 'I can certainly look into that for you. What is the charge you are questioning?' }, { speaker: 'Tú', text: 'There\'s a charge for $50 from a store I don\'t recognize.' }, { speaker: 'Agent', text: 'I see. We will investigate the charge. It may take a few business days to sort it out.' } ], dialogue_es: [ { speaker: 'Tú', text: 'Hola, llamo por mi estado de cuenta de la tarjeta de crédito. Creo que podría haber un error.' }, { speaker: 'Agente', text: 'Claro, puedo investigarlo. ¿Cuál es el cargo que está cuestionando?' }, { speaker: 'Tú', text: 'Hay un cargo de $50 de una tienda que no reconozco.' }, { speaker: 'Agent', text: 'Entiendo. Investigaremos el cargo. Puede tomar unos días hábiles resolverlo.' } ], tips: ["<b>Statement</b> es el estado de cuenta.", "<b>Charge</b> es un cargo o cobro a tu cuenta.", "<b>Business days</b> se refiere a los días laborables (generalmente de lunes a viernes)."], phrasal_verbs: [ { verb: 'Look into', definition: 'Investigar o examinar un problema.' }, { verb: 'Sort out', definition: 'Resolver un problema o una situación confusa.' } ] },
-              { id: 'f4', title: 'Talking About Savings', subtitle: 'Conversa sobre tus metas de ahorro.', image_url: 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=2070&auto=format&fit=crop', dialogue: [ { speaker: 'Amigo/a', text: 'I\'m trying to save up for a new car.' }, { speaker: 'Tú', text: 'That\'s a great goal! Are you setting aside money each month?' }, { speaker: 'Amigo/a', text: 'Yes, I\'m trying to cut back on eating out to save more.' }, { speaker: 'Tú', text: 'Good idea. Every little bit adds up.' } ], dialogue_es: [ { speaker: 'Amigo/a', text: 'Estoy intentando ahorrar para un auto nuevo.' }, { speaker: 'Tú', text: '¡Es una gran meta! ¿Estás apartando dinero cada mes?' }, { speaker: 'Amigo/a', text: 'Sí, estoy tratando de reducir las comidas fuera para ahorrar más.' }, { speaker: 'Tú', text: 'Buena idea. Todo suma.' } ], tips: ["<b>Goal</b> significa meta u objetivo.", "<b>Eating out</b> se refiere a comer en restaurantes.", "<b>Every little bit adds up</b> es una expresión que significa que pequeñas cantidades se acumulan con el tiempo."], phrasal_verbs: [ { verb: 'Save up (for)', definition: 'Ahorrar dinero para un propósito específico.' }, { verb: 'Set aside', definition: 'Guardar o reservar algo (generalmente dinero) para el futuro.' }, { verb: 'Cut back (on)', definition: 'Reducir el consumo o gasto en algo.' } ] } ] }
+              { id: 'f1', title: 'Opening a Bank Account', subtitle: 'Frases clave para trámites bancarios.', image_url: 'https://images.unsplash.com/photo-1553729459-efe14ef6055d?q=80&w=2070&auto=format&fit=crop', 
+                dialogue: [
+                    { speaker: 'Tú', text: 'Good morning, I would like to open an account, please.', phonetic: 'gud morning, ai wud laik tu open an acaunt, plis.' }, 
+                    { speaker: 'Banker', text: 'Certainly. I can help with that. Do you prefer a basic account or one with more features?', phonetic: 'sertenli. ai can jelp uiz dat. du yu prifer a beisic acaunt or uan uiz mor fichurs?' }, 
+                    { speaker: 'Tú', text: 'A basic account will be fine. What documents do I need to provide?', phonetic: 'a beisic acaunt uil bi fain. uat documents du ai nid tu provaid?' }, 
+                    { speaker: 'Banker', text: 'I will need a valid form of ID and a proof of address.', phonetic: 'ai uil nid a valid form of ai-di and a pruuf of adres.' }, 
+                    { speaker: 'Tú', text: 'Of course. Here is my passport and a recent utility bill.', phonetic: 'of cors. jir is mai pasport and a risent yutility bil.' }
+                ], 
+                dialogue_es: [{ speaker: 'Tú', text: 'Buenos días, quisiera abrir una cuenta, por favor.' }, { speaker: 'Ejecutivo/a', text: 'Claro que sí. ¿Prefiere una cuenta básica o una con más beneficios?' }, { speaker: 'Tú', text: 'Una básica está bien. ¿Qué documentos necesito?' }, { speaker: 'Ejecutivo/a', text: 'Necesito una identificación oficial y un comprobante de domicilio.' }, { speaker: 'Tú', text: 'Aquí tiene mi pasaporte y un recibo de luz.' }], tips: ["<b>Checking account</b> es una cuenta corriente para uso diario.", "<b>Proof of address</b> es un documento que prueba dónde vives, como un recibo de servicios (<b>utility bill</b>).", "<b>ID</b> es la abreviatura de 'Identification Document' (documento de identidad)."] },
+              { id: 'f2', title: 'Investing Fundamentals', subtitle: 'Comprende los conceptos básicos de inversión.', image_url: 'https://images.unsplash.com/photo-1624996379697-f01d168b1a52?q=80&w=2070&auto=format&fit=crop', 
+                dialogue: [
+                    { speaker: 'Advisor', text: 'Welcome. To get started, could you tell me about your investment goals?', phonetic: 'uelcom. tu get started, cud yu tel mi abaut yur investment gouls?' }, 
+                    { speaker: 'Tú', text: 'I\'m a beginner, so I\'d like to learn about the fundamentals, like stocks and bonds.', phonetic: 'aim a biguiner, so aid laik tu lern abaut de fundamentals, laik stoks and bonds.' }, 
+                    { speaker: 'Advisor', text: 'Excellent. Stocks represent ownership in a company, while bonds are essentially loans to an entity.', phonetic: 'excelent. stoks represent ounership in a compani, uail bonds ar esenshali louns tu an entiti.' }, 
+                    { speaker: 'Tú', text: 'I see. And could you explain diversification?', phonetic: 'ai si. and cud yu explein daversifikeishon?' }, 
+                    { speaker: 'Advisor', text: 'Diversification is key to managing risk. In simple terms, it means not putting all your eggs in one basket.', phonetic: 'daversifikeishon is ki tu manaying risk. in simpol terms, it mins not puting ol yur egs in uan basket.' }
+                ], 
+                dialogue_es: [{ speaker: 'Asesor/a', text: 'Bienvenido. Para empezar, ¿podría contarme cuáles son sus objetivos de inversión?' }, { speaker: 'Tú', text: 'Soy principiante, por lo que me gustaría aprender sobre los fundamentos, como acciones y bonos.' }, { speaker: 'Asesor/a', text: 'Excelente. Las acciones representan la propiedad de una empresa, mientras que los bonos son esencialmente préstamos a una entidad.' }, { speaker: 'Tú', text: 'Entiendo ¿Y podrías explicar la diversificación?' }, { speaker: 'Asesor/a', text: 'La diversificación es clave para gestionar el riesgo. En términos simples, significa no poner todos los huevos en la misma canasta.' }], tips: ["<b>Stocks</b> (acciones) y <b>Bonds</b> (bonos) son los dos tipos de inversión más comunes.", "<b>Risk</b> (riesgo) es un concepto fundamental en finanzas.", "La frase <b>'not putting all your eggs in one basket'</b> es un dicho popular que significa no arriesgarlo todo en una sola cosa."] },
+              { id: 'f3', title: 'Discussing a Bill', subtitle: 'Aclara dudas sobre un estado de cuenta.', image_url: 'https://images.unsplash.com/photo-1579621970795-87facc2f976d?q=80&w=2070&auto=format&fit=crop', 
+                dialogue: [ 
+                    { speaker: 'Tú', text: 'Hello, I\'m calling about my credit card statement. I think there might be an error.', phonetic: 'jelou, aim coling abaut mai credit card steitment. ai zink der mait bi an error.' }, 
+                    { speaker: 'Agent', text: 'I can certainly look into that for you. What is the charge you are questioning?', phonetic: 'ai can sertenli luk intu dat for yu. uat is de charch yu ar cueschoning?' }, 
+                    { speaker: 'Tú', text: 'There\'s a charge for $50 from a store I don\'t recognize.', phonetic: 'ders a charch for fifti dolars from a stor ai dont recognais.' }, 
+                    { speaker: 'Agent', text: 'I see. We will investigate the charge. It may take a few business days to sort it out.', phonetic: 'ai si. ui uil investigueit de charch. it mei teik a fiu bisnes deis tu sort it aut.' } 
+                ], 
+                dialogue_es: [ { speaker: 'Tú', text: 'Hola, llamo por mi estado de cuenta de la tarjeta de crédito. Creo que podría haber un error.' }, { speaker: 'Agente', text: 'Claro, puedo investigarlo. ¿Cuál es el cargo que está cuestionando?' }, { speaker: 'Tú', text: 'Hay un cargo de $50 de una tienda que no reconozco.' }, { speaker: 'Agent', text: 'Entiendo. Investigaremos el cargo. Puede tomar unos días hábiles resolverlo.' } ], tips: ["<b>Statement</b> es el estado de cuenta.", "<b>Charge</b> es un cargo o cobro a tu cuenta.", "<b>Business days</b> se refiere a los días laborables (generalmente de lunes a viernes)."], phrasal_verbs: [ { verb: 'Look into', definition: 'Investigar o examinar un problema.' }, { verb: 'Sort out', definition: 'Resolver un problema o una situación confusa.' } ] },
+              { id: 'f4', title: 'Talking About Savings', subtitle: 'Conversa sobre tus metas de ahorro.', image_url: 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=2070&auto=format&fit=crop', 
+                dialogue: [ 
+                    { speaker: 'Amigo/a', text: 'I\'m trying to save up for a new car.', phonetic: 'aim traing tu seiv ap for a niu car.' }, 
+                    { speaker: 'Tú', text: 'That\'s a great goal! Are you setting aside money each month?', phonetic: 'dats a greit goul! ar yu seting asaid moni ich monz?' }, 
+                    { speaker: 'Amigo/a', text: 'Yes, I\'m trying to cut back on eating out to save more.', phonetic: 'yes, aim traing tu cot bak on iting aut tu seiv mor.' }, 
+                    { speaker: 'Tú', text: 'Good idea. Every little bit adds up.', phonetic: 'gud aidia. evri litol bit ads ap.' } 
+                ], 
+                dialogue_es: [ { speaker: 'Amigo/a', text: 'Estoy intentando ahorrar para un auto nuevo.' }, { speaker: 'Tú', text: '¡Es una gran meta! ¿Estás apartando dinero cada mes?' }, { speaker: 'Amigo/a', text: 'Sí, estoy tratando de reducir las comidas fuera para ahorrar más.' }, { speaker: 'Tú', text: 'Buena idea. Todo suma.' } ], tips: ["<b>Goal</b> significa meta u objetivo.", "<b>Eating out</b> se refiere a comer en restaurantes.", "<b>Every little bit adds up</b> es una expresión que significa que pequeñas cantidades se acumulan con el tiempo."], phrasal_verbs: [ { verb: 'Save up (for)', definition: 'Ahorrar dinero para un propósito específico.' }, { verb: 'Set aside', definition: 'Guardar o reservar algo (generalmente dinero) para el futuro.' }, { verb: 'Cut back (on)', definition: 'Reducir el consumo o gasto en algo.' } ] } ] }
       };
       
       // --- ESTADO Y LÓGICA DE LA APP ---
@@ -828,7 +942,8 @@
                               <button class="audio-btn" onclick="window.appLogic.speakTextByIndex(${index})"><i class="fa-solid fa-volume-high"></i></button>
                           </div>
                           <p class="text-gray-800 dark:text-gray-200 mt-1">${line.text}</p>
-                          <p class="text-gray-500 dark:text-gray-400 text-sm italic">${dialogue_es[index].text}</p>
+                          ${line.phonetic ? `<p class="phonetic-text">${line.phonetic}</p>` : ''}
+                          <p class="text-gray-500 dark:text-gray-400 text-sm italic mt-1">${dialogue_es[index].text}</p>
                           <div class="flex items-center mt-2">
                              <button class="audio-btn mr-2 record-btn" onclick="window.appLogic.startSpeechRecognition(this, '${line.text.replace(/'/g, "\\'")}')"><i class="fa-solid fa-microphone"></i></button>
                              <span class="recognition-result"></span>
@@ -872,7 +987,16 @@
               setTimeout(() => {
                   const utterance = new SpeechSynthesisUtterance(textToSpeak);
                   utterance.lang = 'en-US';
-                  utterance.rate = globalSpeechSpeed;
+                  
+                  // Ajuste de tono y velocidad para una voz más jovial, alegre y dinámica
+                  if (appState.currentVoiceGender === 'male') {
+                      utterance.rate = globalSpeechSpeed * 1.05; // Levemente más ágil y fluido
+                      utterance.pitch = 1.25; // Tono más elevado y expresivo/amigable
+                  } else {
+                      utterance.rate = globalSpeechSpeed;
+                      utterance.pitch = 1.0;
+                  }
+
                   if (appState.currentVoiceObject) {
                       utterance.voice = appState.currentVoiceObject;
                   } else {
@@ -898,35 +1022,39 @@
           function loadVoices() {
               function populateVoiceList() {
                   const voices = speechSynthesis.getVoices();
-                  if (voices.length === 0 && appState.voicesLoaded === false) {
-                      return;
-                  }
+                  if (voices.length === 0) return;
+
                   appState.voicesLoaded = true;
                   const femaleBtn = document.getElementById('female-voice-btn');
                   const maleBtn = document.getElementById('male-voice-btn');
 
-                  const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+                  // Filtro estricto para inglés en EE. UU.
+                  const englishVoices = voices.filter(v => v.lang === 'en-US' || v.lang === 'en_US' || v.lang.startsWith('en'));
+
                   if (englishVoices.length > 0) {
-                      const preferredFemaleNames = ['Puck', 'Kore', 'Ava', 'Samantha', 'Tessa', 'Zoe', 'Google US English', 'Susan'];
-                      const preferredMaleNames = ['Gacrux', 'Charon', 'Algenib', 'David', 'Mark', 'Aaron', 'Google UK English Male', 'Daniel'];
-                      
-                      femaleVoice = englishVoices.find(v => preferredFemaleNames.some(name => v.name.includes(name))) || englishVoices.find(v => /female/i.test(v.name));
-                      maleVoice = englishVoices.find(v => preferredMaleNames.some(name => v.name.includes(name)) && (!femaleVoice || v.name !== femaleVoice.name)) || englishVoices.find(v => /male/i.test(v.name) && (!femaleVoice || v.name !== femaleVoice.name));
+                      // Búsqueda de voz femenina
+                      const femaleKeywords = ['Puck', 'Kore', 'Ava', 'Samantha', 'Zoe', 'Susan', 'Zira', 'Female', 'Google US English'];
+                      femaleVoice = englishVoices.find(v => femaleKeywords.some(k => v.name.includes(k))) || englishVoices[0];
+
+                      // Búsqueda de voz masculina jovial de EE. UU. (Google US English, Alex, Natural, Male)
+                      const maleKeywords = ['Google US English', 'Alex', 'Guy', 'Natural', 'Aaron', 'David', 'Mark', 'Male'];
+                      maleVoice = englishVoices.find(v => maleKeywords.some(k => v.name.includes(k)) && v !== femaleVoice) 
+                                 || englishVoices.find(v => v !== femaleVoice) 
+                                 || englishVoices[0];
                   }
 
+                  // Asegurar visibilidad y activación de ambos botones de género
                   femaleBtn.classList.remove('loading');
                   maleBtn.classList.remove('loading');
-                  
-                  if (femaleVoice) { femaleBtn.disabled = false; } else { femaleBtn.style.display = 'none'; }
-                  if (maleVoice) { maleBtn.disabled = false; } else { maleBtn.style.display = 'none'; }
-                  
-                  if (!femaleVoice && !maleVoice) { 
-                      document.getElementById('voice-selection-container').style.display = 'none'; 
-                  } else { 
-                      document.getElementById('voice-selection-container').style.display = 'flex'; 
-                  }
 
-                  selectVoice(localStorage.getItem('preferredVoice') || 'female');
+                  femaleBtn.disabled = false;
+                  maleBtn.disabled = false;
+                  femaleBtn.style.display = 'flex';
+                  maleBtn.style.display = 'flex';
+
+                  document.getElementById('voice-selection-container').style.display = 'flex';
+
+                  selectVoice(localStorage.getItem('preferredVoice') || 'male');
               }
 
               populateVoiceList();
@@ -936,9 +1064,16 @@
           }
           
           function selectVoice(gender) {
-              if (gender === 'female' && femaleVoice) { appState.currentVoiceObject = femaleVoice; appState.currentVoiceGender = 'female'; } 
-              else if (gender === 'male' && maleVoice) { appState.currentVoiceObject = maleVoice; appState.currentVoiceGender = 'male'; } 
-              else { appState.currentVoiceObject = femaleVoice || maleVoice; appState.currentVoiceGender = femaleVoice ? 'female' : 'male'; }
+              if (gender === 'male' && maleVoice) {
+                  appState.currentVoiceObject = maleVoice;
+                  appState.currentVoiceGender = 'male';
+              } else if (gender === 'female' && femaleVoice) {
+                  appState.currentVoiceObject = femaleVoice;
+                  appState.currentVoiceGender = 'female';
+              } else {
+                  appState.currentVoiceObject = maleVoice || femaleVoice;
+                  appState.currentVoiceGender = maleVoice ? 'male' : 'female';
+              }
               localStorage.setItem('preferredVoice', appState.currentVoiceGender);
               updateVoiceSelectionUI();
           }
@@ -957,17 +1092,16 @@
                   return;
               }
 
-              // --- Gestión de Permisos del Micrófono ---
               if (!appState.micPermissionGranted) {
                   try {
-                      // Solicita permiso sin recargar la página
                       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                       appState.micPermissionGranted = true;
-                      // Detiene inmediatamente el stream ya que solo necesitamos el permiso
+                      updateMicButtonUI(true); // Actualiza el botón de la pantalla de bienvenida
                       stream.getTracks().forEach(track => track.stop());
                   } catch (err) {
                       console.error("Error al solicitar permiso del micrófono:", err);
                       resultContainer.textContent = 'Permiso de micrófono denegado.';
+                      updateMicButtonUI(false, 'Permiso denegado'); // Actualiza el botón
                       return;
                   }
               }
@@ -1035,6 +1169,64 @@
                   renderCategoryCards(searchTerm);
               }
           }
+          
+          function updateMicButtonUI(granted, message = '') {
+            const micButton = document.getElementById('enable-mic-btn');
+            if (!micButton) return;
+
+            micButton.disabled = granted;
+            if (granted) {
+                micButton.innerHTML = `<i class="fa-solid fa-microphone mr-2"></i> Micrófono Habilitado`;
+                micButton.classList.remove('bg-purple-100', 'hover:bg-purple-200', 'dark:bg-dark-surface', 'dark:hover:bg-dark-container', 'text-purple-700', 'dark:text-purple-300');
+                micButton.classList.add('bg-green-100', 'dark:bg-green-900/50', 'text-green-700', 'dark:text-green-300', 'cursor-not-allowed');
+            } else {
+                 micButton.innerHTML = `<i class="fa-solid fa-microphone-slash mr-2"></i> ${message || 'Habilitar Micrófono'}`;
+                 micButton.disabled = false;
+                 micButton.classList.remove('bg-green-100', 'dark:bg-green-900/50', 'text-green-700', 'dark:text-green-300', 'cursor-not-allowed', 'bg-red-100', 'text-red-700');
+                 micButton.classList.add('bg-purple-100', 'hover:bg-purple-200', 'dark:bg-dark-surface', 'dark:hover:bg-dark-container', 'text-purple-700', 'dark:text-purple-300');
+                 if (message.includes('denegado')) {
+                    micButton.classList.remove('bg-purple-100', 'text-purple-700');
+                    micButton.classList.add('bg-red-100', 'text-red-700');
+                 }
+            }
+          }
+
+          async function requestMicPermission() {
+            const micButton = document.getElementById('enable-mic-btn');
+            if (!micButton || appState.micPermissionGranted) return;
+
+            micButton.disabled = true;
+            micButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> Solicitando...`;
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                appState.micPermissionGranted = true;
+                stream.getTracks().forEach(track => track.stop());
+                console.log("Permiso de micrófono concedido.");
+                updateMicButtonUI(true, 'Permiso concedido');
+            } catch (err) {
+                console.error("Error al solicitar permiso del micrófono:", err);
+                appState.micPermissionGranted = false;
+                updateMicButtonUI(false, 'Permiso denegado');
+            }
+          }
+          
+          async function checkInitialMicPermission() {
+            if (navigator.permissions) {
+                try {
+                    const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+                    appState.micPermissionGranted = permissionStatus.state === 'granted';
+                    updateMicButtonUI(appState.micPermissionGranted);
+                    permissionStatus.onchange = () => {
+                        appState.micPermissionGranted = (permissionStatus.state === 'granted');
+                        updateMicButtonUI(permissionStatus.state === 'granted');
+                    };
+                } catch (error) {
+                    console.warn("No se pudo verificar el estado del permiso del micrófono:", error);
+                    updateMicButtonUI(false);
+                }
+            }
+          }
 
           // --- INICIALIZACIÓN ---
           function initializeApp() {
@@ -1050,6 +1242,7 @@
               searchInputMobile.addEventListener('input', handleSearchMobile);
               loadTheme();
               renderCategoryCards();
+              checkInitialMicPermission();
           }
           
           function loadTheme() {
@@ -1069,7 +1262,7 @@
               closeAuthModal, toggleAuthForm, speakTextByIndex, startSpeechRecognition,
               getState: () => appState, showPresentation, goBackToCategories, goBackToLessons,
               selectVoice, setGlobalSpeed, showLessonsView, selectLesson, startInteractiveLesson,
-              toggleLessonComplete
+              toggleLessonComplete, requestMicPermission
           };
       })();
 
@@ -1082,7 +1275,6 @@
       window.selectVoice = function(gender) { window.appLogic.selectVoice(gender); }
       window.setGlobalSpeed = function(el) { window.appLogic.setGlobalSpeed(el); }
       
-      // Función para obtener un mensaje de error legible
       function getFirebaseErrorMessage(error) {
           switch (error.code) {
               case 'auth/invalid-email': return 'El formato del correo electrónico no es válido.';
@@ -1097,22 +1289,13 @@
           }
       }
 
-      // Listener para cambios en el estado de autenticación y manejo de inicio de sesión inicial
-      let initialAuthCheckCompleted = false;
-      onAuthStateChanged(auth, async (user) => {
-          if (!window.appLogic) return; // Asegurarse que la app esté lista
+      // --- LÓGICA DE INICIALIZACIÓN Y AUTENTICACIÓN ---
+      
+      onAuthStateChanged(auth, (user) => {
+          if (!window.appLogic) return;
           const appState = window.appLogic.getState();
-          const isAppVisible = !document.getElementById('app-content').classList.contains('hidden');
-
-          // Este listener solo gestionará usuarios REALES de Firebase.
-          // El modo "Continuar" sin cuenta se maneja manualmente.
-          if (appState.currentUser && appState.currentUser.uid.startsWith('guest_')) {
-              // Si ya estamos en modo invitado manual, no hacer nada.
-              return;
-          }
-
+          
           if (user) {
-              // Si hay un usuario, actualizamos el estado y la UI
               appState.currentUser = {
                   name: user.displayName,
                   email: user.email,
@@ -1120,47 +1303,41 @@
                   photoURL: user.photoURL,
                   isAnonymous: user.isAnonymous
               };
-              if (!isAppVisible) {
-                  window.appLogic.showAppContent();
-              }
-          } else if (!initialAuthCheckCompleted) {
-              // Si no hay usuario y es la primera comprobación
-              initialAuthCheckCompleted = true; // Marcar como completada para evitar bucles
-              try {
-                  const result = await getRedirectResult(auth);
-                  if (result) {
-                      // El listener se volverá a ejecutar con el usuario del redirect, no hacemos nada más
-                      console.log("Inicio de sesión con Google Redirect exitoso.");
-                  } else if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                      // Si no hay redirect, intentar con custom token
-                      await signInWithCustomToken(auth, __initial_auth_token);
-                  } else {
-                      // No hay usuario, ni redirect, ni token. Mostrar pantalla de bienvenida.
-                      appState.currentUser = null;
-                      if (isAppVisible) {
-                          window.appLogic.showPresentation();
-                      }
-                  }
-              } catch (error) {
-                  console.error("Error en la autenticación inicial:", error);
-                  appState.currentUser = null;
-                  window.appLogic.showPresentation(); // Mostrar presentación en caso de error
-              }
+              // Cerrar modal automáticamente al detectar inicio de sesión
+              window.appLogic.closeAuthModal({target: {id: ''}}, true);
+              window.appLogic.showAppContent();
           } else {
-              // Si no hay usuario y ya se hizo la comprobación inicial (ej. después de un logout)
               appState.currentUser = null;
-              if (isAppVisible) {
-                  window.appLogic.showPresentation();
-              }
           }
-
-          // Actualizar la UI en cada cambio de estado
+          
           window.appLogic.updateAuthUI();
           window.appLogic.updateCategoryStats();
+
+          const isAppVisible = !document.getElementById('app-content').classList.contains('hidden');
+          if (!user && isAppVisible) {
+              window.appLogic.showPresentation();
+          }
       });
 
-      // Inicializar la lógica de la aplicación
-      window.appLogic.initializeApp();
+      (async () => {
+          // Primero, inicializa la UI para que todo esté listo.
+          window.appLogic.initializeApp();
+          
+          try {
+              // Luego, revisa si hay un resultado de redirect de Google.
+              const result = await getRedirectResult(auth);
+              if (result) {
+                  // Si hay un resultado, significa que el usuario acaba de iniciar sesión.
+                  // Ahora podemos mostrar el contenido de la app.
+                  console.log("Inicio de sesión con Google Redirect exitoso.");
+                  window.appLogic.showAppContent();
+              }
+              // Si no hay resultado, no hacemos nada. La app se quedará en la
+              // pantalla de bienvenida esperando una acción del usuario.
+          } catch (error) {
+              console.error("Error al procesar el redirect de Google:", error);
+          }
+      })();
     </script>
 </body>
 </html>

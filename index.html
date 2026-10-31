@@ -358,7 +358,11 @@
                   } else {
                       console.error("Error al iniciar sesión con Google:", error);
                       if (errorEl) {
-                          errorEl.textContent = getFirebaseErrorMessage(error);
+                          if (error.code === 'auth/unauthorized-domain') {
+                              errorEl.textContent = 'Este dominio no está autorizado. Agrégalo en Firebase (Authentication > Settings > Authorized domains).';
+                          } else {
+                              errorEl.textContent = getFirebaseErrorMessage(error);
+                          }
                           errorEl.classList.remove('hidden');
                       }
                   }
@@ -1002,20 +1006,22 @@
                   const utterance = new SpeechSynthesisUtterance(textToSpeak);
                   utterance.lang = 'en-US';
                   
-                  // Ajuste de tono y velocidad para una voz más jovial, alegre y dinámica
+                  // Detección mejorada para teléfonos móviles:
+                  // Si es voz masculina, modulamos el tono (pitch) para asegurar el cambio en el móvil.
                   if (appState.currentVoiceGender === 'male') {
-                      utterance.rate = globalSpeechSpeed * 1.05; // Levemente más ágil y fluido
-                      utterance.pitch = 1.25; // Tono más elevado y expresivo/amigable
+                      utterance.rate = globalSpeechSpeed * 0.95; // Velocidad pausada y natural
+                      utterance.pitch = 0.75; // Tono grave para voz masculina en móviles y PC
                   } else {
                       utterance.rate = globalSpeechSpeed;
-                      utterance.pitch = 1.0;
+                      utterance.pitch = 1.15; // Tono más elevado y claro para la voz femenina
                   }
 
                   if (appState.currentVoiceObject) {
                       utterance.voice = appState.currentVoiceObject;
                   } else {
-                      console.warn("Voz no seleccionada, usando la predeterminada.");
+                      console.warn("Voz no seleccionada, usando la voz del sistema.");
                   }
+
                   utterance.onerror = (event) => {
                       if (event.error !== 'interrupted') {
                           console.error('Error de SpeechSynthesisUtterance:', event.error);
@@ -1042,31 +1048,30 @@
                   const femaleBtn = document.getElementById('female-voice-btn');
                   const maleBtn = document.getElementById('male-voice-btn');
 
-                  // Filtro estricto para inglés en EE. UU.
+                  // Filtro para encontrar cualquier voz en inglés disponible
                   const englishVoices = voices.filter(v => v.lang === 'en-US' || v.lang === 'en_US' || v.lang.startsWith('en'));
 
                   if (englishVoices.length > 0) {
-                      // Búsqueda de voz femenina
                       const femaleKeywords = ['Puck', 'Kore', 'Ava', 'Samantha', 'Zoe', 'Susan', 'Zira', 'Female', 'Google US English'];
                       femaleVoice = englishVoices.find(v => femaleKeywords.some(k => v.name.includes(k))) || englishVoices[0];
 
-                      // Búsqueda de voz masculina jovial de EE. UU. (Google US English, Alex, Natural, Male)
                       const maleKeywords = ['Google US English', 'Alex', 'Guy', 'Natural', 'Aaron', 'David', 'Mark', 'Male'];
                       maleVoice = englishVoices.find(v => maleKeywords.some(k => v.name.includes(k)) && v !== femaleVoice) 
                                  || englishVoices.find(v => v !== femaleVoice) 
                                  || englishVoices[0];
                   }
 
-                  // Asegurar visibilidad y activación de ambos botones de género
-                  femaleBtn.classList.remove('loading');
-                  maleBtn.classList.remove('loading');
+                  if (femaleBtn && maleBtn) {
+                      femaleBtn.classList.remove('loading');
+                      maleBtn.classList.remove('loading');
+                      femaleBtn.disabled = false;
+                      maleBtn.disabled = false;
+                      femaleBtn.style.display = 'flex';
+                      maleBtn.style.display = 'flex';
+                  }
 
-                  femaleBtn.disabled = false;
-                  maleBtn.disabled = false;
-                  femaleBtn.style.display = 'flex';
-                  maleBtn.style.display = 'flex';
-
-                  document.getElementById('voice-selection-container').style.display = 'flex';
+                  const container = document.getElementById('voice-selection-container');
+                  if (container) container.style.display = 'flex';
 
                   selectVoice(localStorage.getItem('preferredVoice') || 'male');
               }

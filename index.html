@@ -5,751 +5,879 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apply - Aprende Inglés</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f4f5f7;
+    <script>
+        tailwind.config = {
+          darkMode: 'class',
+          theme: {
+            extend: {
+              colors: {
+                dark: { background: '#0f172a', surface: '#1e293b', container: '#334155' },
+                peach: { '400': '#fdba74', '500': '#f97316' }
+              }
+            }
+          }
         }
-        .bg-pastel-blue { background-color: #e0f7fa; color: #006064; }
-        .bg-pastel-purple { background-color: #ede7f6; color: #4a148c; }
-        .bg-pastel-green { background-color: #e8f5e9; color: #1b5e20; }
-        .bg-pastel-yellow { background-color: #fffde7; color: #f57f17; }
-        .border-pastel-blue { border-color: #b2ebf2; }
-        .border-pastel-purple { border-color: #d1c4e9; }
-        .border-pastel-green { border-color: #c8e6c9; }
-        .border-pastel-yellow { border-color: #fff9c4; }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; overflow-x: hidden; }
+        .dark body { background-color: var(--tw-colors-dark-background); color: white; }
+
+        #splash-screen { display: grid; place-items: center; height: 100vh; width: 100vw; background-color: #f8fafc; font-family: 'Poppins', sans-serif; text-align: center; position: fixed; top: 0; left: 0; z-index: 100; transition: opacity 0.5s ease-out, transform 0.5s ease-out; }
+        .dark #splash-screen { background-color: #0f172a; }
+        #splash-screen.fade-out { opacity: 0; transform: scale(0.95); pointer-events: none; }
+        .splash-container { display: flex; flex-direction: column; align-items: center; }
+        .logo-container { display: flex; align-items: center; justify-content: center; gap: 1.25rem; }
+        .logo-icon { position: relative; width: 80px; height: 80px; background: linear-gradient(135deg, #a855f7, #6d28d9); border-radius: 28%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(109, 40, 217, 0.2); }
+        .letter-a { font-size: 48px; font-weight: 600; color: white; }
+        .logo-text { font-size: 64px; font-weight: 600; color: #4c1d95; display: flex; }
+        .dark .logo-text { color: #ddd6fe; }
+        
+        #auth-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.5); display: grid; place-items: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        #auth-modal.visible { opacity: 1; pointer-events: auto; }
+        .auth-container { width: 90%; max-width: 400px; padding: 2rem; background-color: white; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; }
+        .dark .auth-container { background-color: var(--tw-colors-dark-surface); }
+        .auth-form .form-input { width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 0.5rem; background-color: #f9fafb; margin-top: 0.25rem; }
+        .dark .auth-form .form-input { border-color: #4b5563; background-color: var(--tw-colors-dark-container); color: white; }
+        .auth-form .form-submit { width: 100%; padding: 0.75rem 1rem; border-radius: 0.5rem; font-weight: 600; color: white; background: linear-gradient(135deg, #a855f7, #6d28d9); margin-top: 1rem; }
+
+        .header-logo-btn { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .header-logo-icon { width: 48px; height: 48px; background: linear-gradient(135deg, #a855f7, #6d28d9); border-radius: 28%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(109, 40, 217, 0.2); }
+        .header-logo-icon .letter-a { font-size: 28px; font-weight: 600; color: white; }
+        .header-logo-text { font-family: 'Poppins', sans-serif; font-size: 2.25rem; font-weight: 600; color: #4c1d95; }
+        .dark .header-logo-text { color: #d1d5db; }
+
+        .progress-ring { position: relative; width: 60px; height: 60px; }
+        .progress-ring__svg { transform: rotate(-90deg); }
+        .progress-ring__circle { transition: stroke-dashoffset 0.5s ease-out; }
+        .progress-ring__text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; }
+        
+        .audio-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background-color: #e0e7ff; color: #4f46e5; transition: all 0.2s ease; cursor: pointer; }
+        .audio-btn:hover { background-color: #c7d2fe; }
+        .dark .audio-btn { background-color: #312e81; color: #a5b4fc; }
+        .recognition-result { display: block; margin-top: 6px; font-style: italic; }
+        
+        .phonetic-text { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 0.875rem; color: #0d9488; margin-top: 2px; font-style: italic; }
+        .dark .phonetic-text { color: #2dd4bf; }
     </style>
 </head>
-<body class="min-h-screen text-gray-800 flex flex-col">
+<body class="bg-gray-100 dark:bg-dark-background text-gray-800 dark:text-gray-200 min-h-screen">
 
-    <!-- Header / Navbar -->
-    <header class="bg-white border-b border-gray-200 px-6 py-4 shadow-sm flex items-center justify-between sticky top-0 z-30">
-        <div class="flex items-center gap-3 cursor-pointer" onclick="window.appLogic.renderCategories()">
-            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-2xl font-black">A</div>
-            <span class="text-2xl font-extrabold text-indigo-900 tracking-tight">pply</span>
-        </div>
-
-        <div id="authHeaderUI" class="flex items-center gap-3">
-            <!-- Dynamic auth content rendered via JS -->
-        </div>
-    </header>
-
-    <!-- Main Container -->
-    <main id="mainContainer" class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-8">
-        <!-- Content injected dynamically -->
-    </main>
-
-    <!-- Auth Modal -->
-    <div id="authModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl relative border border-gray-100">
-            <button onclick="window.appLogic.closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-            <h2 id="authModalTitle" class="text-2xl font-bold text-center text-indigo-900 mb-6">Iniciar Sesión</h2>
-
-            <div id="authError" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl"></div>
-
-            <button onclick="window.appLogic.loginWithGoogle()" class="w-full py-3 px-4 border border-gray-300 rounded-xl flex items-center justify-center gap-3 hover:bg-gray-50 transition font-medium text-gray-700 shadow-sm mb-4">
-                <svg class="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                </svg>
-                Ingresar con Google
-            </button>
-
-            <div class="relative flex py-2 items-center mb-4">
-                <div class="flex-grow border-t border-gray-200"></div>
-                <span class="flex-shrink mx-4 text-xs text-gray-400 font-medium">o</span>
-                <div class="flex-grow border-t border-gray-200"></div>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="splash-container">
+            <div class="logo-container">
+                <div class="logo-icon"><span class="letter-a">A</span></div>
+                <div class="logo-text"><span>p</span><span>p</span><span>l</span><span>y</span></div>
             </div>
-
-            <form id="emailAuthForm" onsubmit="window.appLogic.handleEmailAuth(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Email</label>
-                    <input type="email" id="authEmail" required class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Contraseña</label>
-                    <input type="password" id="authPassword" required class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm">
-                </div>
-                <button type="submit" id="authSubmitBtn" class="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition shadow-md">
-                    Entrar
-                </button>
-            </form>
-
-            <div class="mt-4 text-center">
-                <button onclick="window.appLogic.toggleAuthMode()" id="toggleAuthBtn" class="text-xs font-semibold text-indigo-600 hover:underline">
-                    ¿No tienes cuenta? Regístrate
-                </button>
+            <p class="mt-4 text-gray-600 dark:text-gray-300 text-lg">Aprende inglés con frases útiles de forma interactiva.</p>
+            
+            <div class="mt-8 w-full max-w-xs space-y-3">
+                 <button onclick="window.appLogic.openAuthModal('login')" class="w-full py-3 px-6 text-lg font-semibold text-white bg-orange-500 rounded-full shadow-lg hover:bg-orange-600 transition">Iniciar Sesión</button>
+                 <button onclick="window.appLogic.openAuthModal('register')" class="w-full py-3 px-6 text-lg font-semibold text-indigo-700 bg-white border-2 border-indigo-200 rounded-full hover:bg-indigo-50 dark:bg-dark-surface dark:text-indigo-300 dark:border-indigo-500 transition">Crear Cuenta</button>
+                 <button onclick="window.authFunctions.continueWithoutAccount()" class="mt-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:underline">Continuar como invitado &rarr;</button>
             </div>
         </div>
     </div>
 
-    <!-- Application Engine Script -->
+    <!-- Modal de Autenticación -->
+    <div id="auth-modal" onclick="if(event.target.id==='auth-modal') window.appLogic.closeAuthModal(null, true)">
+        <div class="auth-container">
+            <button onclick="window.appLogic.closeAuthModal(null, true)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <i class="fa-solid fa-times fa-lg"></i>
+            </button>
+            
+            <form id="login-form" class="space-y-4 auth-form" onsubmit="event.preventDefault();">
+                <h2 class="text-2xl font-bold text-center mb-4 text-indigo-600 dark:text-indigo-400">Iniciar Sesión</h2>
+                <button type="button" onclick="window.authFunctions.loginWithGoogle()" class="w-full py-2.5 px-4 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center gap-2 bg-white dark:bg-dark-container font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    <img src="https://www.google.com/favicon.ico" class="w-5 h-5" alt="Google">
+                    <span id="google-btn-text">Ingresar con Google</span>
+                </button>
+                <div class="flex items-center my-3"><hr class="w-full border-gray-300 dark:border-gray-600"><span class="px-2 text-sm text-gray-400">o</span><hr class="w-full border-gray-300 dark:border-gray-600"></div>
+                <div>
+                    <label class="block text-sm font-medium">Email</label>
+                    <input type="email" id="login-email" class="form-input" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Contraseña</label>
+                    <input type="password" id="login-password" class="form-input" required>
+                </div>
+                <p id="login-error" class="text-red-500 text-sm text-center h-4"></p>
+                <button type="button" onclick="window.authFunctions.loginUser(event)" class="form-submit">Entrar</button>
+                <p class="text-center text-sm mt-3">¿No tienes cuenta? <button type="button" onclick="window.toggleAuthForm()" class="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">Regístrate</button></p>
+            </form>
+
+            <form id="register-form" class="hidden space-y-4 auth-form" onsubmit="event.preventDefault();">
+                <h2 class="text-2xl font-bold text-center mb-4 text-indigo-600 dark:text-indigo-400">Crear Cuenta</h2>
+                <div>
+                    <label class="block text-sm font-medium">Nombre</label>
+                    <input type="text" id="register-name" class="form-input" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Email</label>
+                    <input type="email" id="register-email" class="form-input" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Contraseña</label>
+                    <input type="password" id="register-password" class="form-input" required>
+                </div>
+                <p id="register-error" class="text-red-500 text-sm text-center h-4"></p>
+                <button type="button" onclick="window.authFunctions.registerUser(event)" class="form-submit">Registrar</button>
+                <p class="text-center text-sm mt-3">¿Ya tienes cuenta? <button type="button" onclick="window.toggleAuthForm()" class="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">Inicia Sesión</button></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div id="app-content" class="hidden container mx-auto p-4 md:p-8 max-w-7xl">
+        <header class="flex items-center justify-between mb-8 gap-4">
+            <button onclick="window.appLogic.showPresentation()" class="header-logo-btn cursor-pointer">
+                <div class="header-logo-icon"><span class="letter-a">A</span></div>
+                <div class="header-logo-text"><span>p</span><span>p</span><span>l</span><span>y</span></div>
+            </button>
+            <div class="flex items-center space-x-4">
+                <div id="auth-controls"></div>
+                <button id="theme-toggle" onclick="document.documentElement.classList.toggle('dark')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 dark:bg-dark-container">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:block text-yellow-400"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Tarjetas de Categorías Pastel (Formato exacto a la foto) -->
+        <div id="category-selection" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"></div>
+        
+        <div id="lessons-view-container" class="hidden">
+            <button onclick="window.appLogic.goBackToCategories()" class="mb-4 text-indigo-600 dark:text-indigo-400 hover:underline font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i> Volver a categorías
+            </button>
+            <h2 id="lessons-title" class="text-3xl font-bold mb-6"></h2>
+            <div id="lessons-layout" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div id="lessons-list-column" class="lg:col-span-1 space-y-4"></div>
+                <div id="lesson-detail-column" class="lg:col-span-2"></div>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+      import { 
+          getAuth, 
+          onAuthStateChanged,
+          GoogleAuthProvider,
+          signInWithPopup,
+          signInWithRedirect,
+          getRedirectResult,
+          signOut,
+          createUserWithEmailAndPassword,
+          signInWithEmailAndPassword,
+          updateProfile 
+      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+      import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+      
+      const firebaseConfig = {
+        apiKey: "AIzaSyBYfwLUFKmmz8lyeJ5uQIIdSYNiklN5N4Q",
+        authDomain: "apply-english.firebaseapp.com",
+        projectId: "apply-english",
+        storageBucket: "apply-english.firebasestorage.app",
+        messagingSenderId: "365585523840",
+        appId: "1:365585523840:web:db9b6161d31ee981c57265"
+      };
 
-        // Firebase Setup
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyDummyKeyForFallbackOnly",
-            authDomain: "apply-english.firebaseapp.com",
-            projectId: "apply-english",
-            storageBucket: "apply-english.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef"
-        };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'apply-english-app';
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+      // --- CATÁLOGO COMPLETO DE CATEGORÍAS Y LECCIONES ---
+      const lessonsData = {
+          cotidiana: { 
+              title: 'Vida Cotidiana', 
+              icon: 'fa-house', 
+              style: { bg: 'bg-cyan-100 dark:bg-cyan-900/40', text: 'text-cyan-800 dark:text-cyan-200', border: 'border-cyan-200', progress: 'stroke-cyan-500' },
+              lessons: [
+                  { 
+                      id: 'c1', 
+                      title: 'Ordering a Coffee', 
+                      subtitle: 'Aprende a pedir tu bebida favorita.', 
+                      image_url: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=1000&auto=format&fit=crop', 
+                      dialogue: [
+                          { speaker: 'Barista', text: 'Hi there! What can I get for you today?', phonetic: 'Jái déer! Uát kán ái gét fór yú tudéi?' }, 
+                          { speaker: 'Tú', text: 'Hello, I\'d like a large latte, please.', phonetic: 'Jelóu, áid láik á lárj látei, plíis.' },
+                          { speaker: 'Barista', text: 'Sure thing. Will that be all for you?', phonetic: 'Shúur zíng. Uíl dát bí óol fór yú?' },
+                          { speaker: 'Tú', text: 'Yes, that\'s everything. Thanks.', phonetic: 'Yés, dats évri-zíng. Zénks.' }
+                      ], 
+                      dialogue_es: [
+                          { speaker: 'Barista', text: '¡Hola! ¿Qué te traigo hoy?' }, 
+                          { speaker: 'Tú', text: 'Hola, quisiera un latte grande, por favor.' },
+                          { speaker: 'Barista', text: 'Claro que sí. ¿Eso será todo para ti?' },
+                          { speaker: 'Tú', text: 'Sí, eso es todo. Gracias.' }
+                      ] 
+                  },
+                  { 
+                      id: 'c2', 
+                      title: 'Asking for Directions', 
+                      subtitle: 'Nunca te pierdas en una ciudad nueva.', 
+                      image_url: 'https://images.unsplash.com/photo-1528642474498-1af0c17fd8c3?q=80&w=1000&auto=format&fit=crop', 
+                      dialogue: [
+                          { speaker: 'Tú', text: 'Excuse me, could you tell me how to get to the train station?', phonetic: 'Eks-kiús mí, kúd yú tél mí jáu tu gét tu de tréin stéishon?' }, 
+                          { speaker: 'Local', text: 'Go straight ahead for two blocks, then turn left. You can\'t miss it.', phonetic: 'Góu stréit ajéd fór tú blóks, dén térn léft. Yú kánt mís it.' },
+                          { speaker: 'Tú', text: 'Is it far from here?', phonetic: 'Ís it fár fróm jíer?' },
+                          { speaker: 'Local', text: 'Not at all, it\'s about a 5-minute walk.', phonetic: 'Nót át óol, its abáut á fáiv-mínit uóok.' }
+                      ], 
+                      dialogue_es: [
+                          { speaker: 'Tú', text: 'Disculpa, ¿me podrías decir cómo llego a la estación de tren?' }, 
+                          { speaker: 'Local', text: 'Sigue derecho por dos cuadras y luego gira a la izquierda. Es imposible perderse.' },
+                          { speaker: 'Tú', text: '¿Está lejos de aquí?' },
+                          { speaker: 'Local', text: 'Para nada, está a unos 5 minutos caminando.' }
+                      ] 
+                  },
+                  { 
+                      id: 'c3', 
+                      title: 'Making a Reservation', 
+                      subtitle: 'Reserva una mesa en un restaurante.', 
+                      image_url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000&auto=format&fit=crop', 
+                      dialogue: [
+                          { speaker: 'Restaurante', text: 'Good evening. How can I help you?', phonetic: 'Gúd ív-ning. Jáu kán ái jélp yú?' },
+                          { speaker: 'Tú', text: 'Hi, I\'d like to book a table for two, please.', phonetic: 'Jái, áid láik tu búuk á téibol fór tú, plíis.' },
+                          { speaker: 'Restaurante', text: 'Certainly. For what time and date?', phonetic: 'Sérten-li. Fór uát táim ánd déit?' },
+                          { speaker: 'Tú', text: 'For this Friday at 8:00 PM.', phonetic: 'Fór dís frái-dei át éit pí-ém.' }
+                      ],
+                      dialogue_es: [
+                          { speaker: 'Restaurante', text: 'Buenas noches. ¿Cómo le puedo ayudar?' },
+                          { speaker: 'Tú', text: 'Hola, me gustaría reservar una mesa para dos, por favor.' },
+                          { speaker: 'Restaurante', text: 'Por supuesto. ¿Para qué fecha y hora?' },
+                          { speaker: 'Tú', text: 'Para este viernes a las 8:00 PM.' }
+                      ]
+                  },
+                  {
+                      id: 'c4',
+                      title: 'Talking About Hobbies',
+                      subtitle: 'Comparte tus pasatiempos e intereses.',
+                      image_url: 'https://images.unsplash.com/photo-1501555088652-021faa106b9b?q=80&w=1000&auto=format&fit=crop',
+                      dialogue: [
+                          { speaker: 'Amigo/a', text: 'So, what do you like to do in your free time?', phonetic: 'Sóu, uát dú yú láik tu dú ín yóor fríi táim?' },
+                          { speaker: 'Tú', text: 'Well, I\'m really into hiking. I try to go every weekend.', phonetic: 'Uél, áim ríili íntu jái-king. Ái trái tu góu évri uíik-end.' },
+                          { speaker: 'Amigo/a', text: 'That sounds fun! I usually just hang out with friends.', phonetic: 'Dát sáunds fán! Ái yúju-ali jást jáng áut uíz frénds.' }
+                      ],
+                      dialogue_es: [
+                          { speaker: 'Amigo/a', text: 'Y dime, ¿qué te gusta hacer en tu tiempo libre?' },
+                          { speaker: 'Tú', text: 'Bueno, me gusta mucho el senderismo. Intento ir todos los fines de semana.' },
+                          { speaker: 'Amigo/a', text: '¡Eso suena divertido! Yo normalmente salgo a pasar el rato con amigos.' }
+                      ]
+                  }
+              ]
+          },
+          profesional: {
+              title: 'Vida Profesional',
+              icon: 'fa-briefcase',
+              style: { bg: 'bg-indigo-100 dark:bg-indigo-900/40', text: 'text-indigo-800 dark:text-indigo-200', border: 'border-indigo-200', progress: 'stroke-indigo-500' },
+              lessons: [
+                  {
+                      id: 'p1',
+                      title: 'Professional Introduction',
+                      subtitle: 'Preséntate con confianza en el trabajo.',
+                      image_url: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1000&auto=format&fit=crop',
+                      dialogue: [
+                          { speaker: 'Manager', text: 'Everyone, I\'d like to introduce our new Marketing Specialist, Alex.', phonetic: 'Évri-uán, áid láik tu intro-diús áuar niú márke-ting espésha-list, Áleks.' },
+                          { speaker: 'Tú', text: 'Hello everyone. It\'s a pleasure to meet you all.', phonetic: 'Jelóu évri-uán. Its á pléjur tu míit yú óol.' },
+                          { speaker: 'Colega', text: 'Welcome to the team, Alex! We\'re glad to have you.', phonetic: 'Uél-kam tu de tíim, Áleks! Uíir glád tu jáv yú.' }
+                      ],
+                      dialogue_es: [
+                          { speaker: 'Manager', text: 'Equipo, quiero presentarles a nuestro nuevo especialista de marketing, Alex.' },
+                          { speaker: 'Tú', text: 'Hola a todos. Es un verdadero placer conocerlos.' },
+                          { speaker: 'Colega', text: '¡Bienvenido al equipo, Alex! Nos alegra tenerte aquí.' }
+                      ]
+                  },
+                  {
+                      id: 'p2',
+                      title: 'Writing a Formal Email',
+                      subtitle: 'Comunica de forma clara y profesional.',
+                      image_url: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?q=80&w=1000&auto=format&fit=crop',
+                      dialogue: [
+                          { speaker: 'Asunto', text: 'Meeting Follow-up', phonetic: 'Míi-ting fólou-ap' },
+                          { speaker: 'Cuerpo', text: 'Dear Mr. Smith, I have attached the project proposal for your review.', phonetic: 'Díer mís-ter smíz, ái jáv atácht de próyekt propóusal fór yóor re-víu.' },
+                          { speaker: 'Tú', text: 'Please let me know if you have any questions. Best regards.', phonetic: 'Plíis lét mí nóu íf yú jáv éni kués-chons. Bést re-gárds.' }
+                      ],
+                      dialogue_es: [
+                          { speaker: 'Asunto', text: 'Seguimiento de la reunión' },
+                          { speaker: 'Cuerpo', text: 'Estimado Sr. Smith, he adjuntado la propuesta del proyecto para su revisión.' },
+                          { speaker: 'Tú', text: 'Por favor déjeme saber si tiene alguna pregunta. Atentamente.' }
+                      ]
+                  },
+                  {
+                      id: 'p3',
+                      title: 'Participating in a Meeting',
+                      subtitle: 'Comparte tus ideas de forma efectiva.',
+                      image_url: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1000&auto=format&fit=crop',
+                      dialogue: [
+                          { speaker: 'Jefe/a', text: 'Let\'s kick off the meeting. What are your thoughts?', phonetic: 'Léts kík óof de míi-ting. Uát ár yóor zóots?' },
+                          { speaker: 'Tú', text: 'If I could jump in, I think we should focus on social media.', phonetic: 'Íf ái kúd jámp ín, ái zínk uí shúd fóukus ón sóushal míidia.' },
+                          { speaker: 'Colega', text: 'I agree with that. We need to build on our online presence.', phonetic: 'Ái agríi uíz dát. Uí níid tu bíld ón áuar ón-lain pré-sens.' }
+                      ],
+                      dialogue_es: [
+                          { speaker: 'Jefe/a', text: 'Comencemos la reunión. ¿Cuáles son sus opiniones?' },
+                          { speaker: 'Tú', text: 'Si me permiten opinar, creo que deberíamos enfocarnos en redes sociales.' },
+                          { speaker: 'Colega', text: 'Estoy de acuerdo con eso. Necesitamos fortalecer nuestra presencia en línea.' }
+                      ]
+                  },
+                  {
+                      id: 'p4',
+                      title: 'Asking for Time Off',
+                      subtitle: 'Solicita días libres de manera profesional.',
+                      image_url: 'https://images.unsplash.com/photo-1562564055-71e051d33c19?q=80&w=1000&auto=format&fit=crop',
+                      dialogue: [
+                          { speaker: 'Tú', text: 'Hi, I\'d like to request some time off next month.', phonetic: 'Jái, áid láik tu re-kuést sám táim óof nékst mánz.' },
+                          { speaker: 'Manager', text: 'Okay. How many days are you thinking of?', phonetic: 'Óu-kei. Jáu mé-ni déis ár yú zíin-king óv?' },
+                          { speaker: 'Tú', text: 'I was hoping to take off from the 24th to the 28th.', phonetic: 'Ái uás jóu-ping tu téik óof fróm de tuén-ti fóurz tu de tuén-ti éitz.' }
+                      ],
+                      dialogue_es: [
+                          { speaker: 'Tú', text: 'Hola, me gustaría solicitar unos días libres el próximo mes.' },
+                          { speaker: 'Manager', text: 'De acuerdo. ¿En cuántos días estás pensando?' },
+                          { speaker: 'Tú', text: 'Esperaba tomarme del 24 al 28.' }
+                      ]
+                  }
+              ]
+          },
+          viajes: {
+              title: 'Inglés para Viajes',
+              icon: 'fa-plane-departure',
+              style: { bg: 'bg-emerald-100 dark:bg-emerald-900/40', text: 'text-emerald-800 dark:text-emerald-200', border: 'border-emerald-200', progress: 'stroke-emerald-500' },
+              lessons: [
+                  {
+                      id: 'v1',
+                      title: 'At the Airport',
+                      subtitle: 'Frases clave para el check-in y seguridad.',
+                      image_url: 'https://images.unsplash.com/photo-1569154941061-e231b4725ef1?q=80&w=1000&auto=format&fit=crop',
+                      dialogue: [
+                          { speaker: 'Agente', text: 'Good morning. Passport and ticket, please.', phonetic: 'Gúd mórning. Pás-port ánd tíket, plíis.' },
+                          { speaker: 'Tú', text: 'Here you are. Is the flight on time?', phonetic: 'Jíer yú ár. Ís de fláit ón táim?' },
+                          { speaker: 'Agente', text: 'Yes, it is. Your gate is B24. Have a nice flight!', phonetic: 'Yés, it ís. Yóor géit ís bíi tuén-ti fóor. Jáv á náis fláit!' }
+                      ],
+                      dialogue_es: [
+                          { speaker: 'Agente', text: 'Buenos días. Pasaporte y pasaje, por favor.' },
+                          { speaker: 'Tú', text: 'Aquí tiene. ¿El vuelo está a tiempo?' },
+                          { speaker: 'Agente', text: 'Sí. Su puerta de embarque es la B24. ¡Que tenga buen vuelo!' }
+                      ]
+                  },
+                  {
+                      id: 'v2',
+                      title: 'At the Hotel',
+                      subtitle: 'Cómo registrarte y hacer preguntas.',
+                      image_url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1000&auto=format&fit=crop',
+                      dialogue: [
+                          { speaker: 'Recepcionista', text: 'Good evening. Do you have a reservation with us?', phonetic: 'Gúd ív-ning. Dú yú jáv á re-ser-véi-shon uíz ús?' },
+                          { speaker: 'Tú', text: 'Yes, I have a reservation under the name Smith.', phonetic: 'Yés, ái jáv á re-ser-véi-shon án-der de néim smíz.' },
+                          { speaker: 'Recepcionista', text: 'Perfect. Here is your room key. Enjoy your stay.', phonetic: 'Pér-fekt. Jíer ís yóor rúum kíi. En-jóy yóor stéi.' }
+                      ],
+                      dialogue_es: [
+                          { speaker: 'Recepcionista', text: 'Buenas noches. ¿Tiene una reservación con nosotros?' },
+                          { speaker: 'Tú', text: 'Sí, tengo una reservación a nombre de Smith.' },
+                          { speaker: 'Recepcionista', text: 'Perfecto. Aquí está la llave de su habitación. Disfrute su estadía.' }
+                      ]
+                  },
+                  {
+                      id: 'v3',
+                      title: 'Ordering at a Restaurant',
+                      subtitle: 'Pide tu comida con soltura.',
+                      image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1000&auto=format&fit=crop',
+                      dialogue: [
+                          { speaker: 'Mesero/a', text: 'Are you ready to order, or do you need a few more minutes?', phonetic: 'Ár yú ré-di tu óor-der, óor dú yú níid á fiú móor mí-nits?' },
+                          { speaker: 'Tú', text: 'I think we\'re ready. I\'ll have the steak, please.', phonetic: 'Ái zínk uíir ré-di. Áil jáv de stéik, plíis.' },
+                          { speaker: 'Mesero/a', text: 'Excellent choice. How would you like that cooked?', phonetic: 'Ék-se-lent chóis. Jáu wúd yú láik dát kúukt?' }
+                      ],
+                      dialogue_es: [
+                          { speaker: 'Mesero/a', text: '¿Están listos para pedir o necesitan unos minutos más?' },
+                          { speaker: 'Tú', text: 'Creo que estamos listos. Pediré el filete, por favor.' },
+                          { speaker: 'Mesero/a', text: 'Excelente elección. ¿En qué término le gustaría la carne?' }
+                      ]
+                  },
+                  {
+                      id: 'v4',
+                      title: 'Dealing with Lost Luggage',
+                      subtitle: 'Resuelve inconvenientes con el equipaje.',
+                      image_url: 'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=1000&auto=format&fit=crop',
+                      dialogue: [
+                          { speaker: 'Tú', text: 'Excuse me, my baggage hasn\'t come out on the carousel.', phonetic: 'Eks-kiús mí, mái bá-guej já-sent kám áut ón de ká-ru-sel.' },
+                          { speaker: 'Personal', text: 'I\'m sorry to hear that. Can I see your baggage claim ticket?', phonetic: 'Áim só-ri tu jíer dát. Kán ái síi yóor bá-guej kléim tí-ket?' },
+                          { speaker: 'Tú', text: 'Yes, here it is. It\'s a large blue suitcase.', phonetic: 'Yés, jíer it ís. Its á lárj blúu súut-keis.' }
+                      ],
+                      dialogue_es: [
+                          { speaker: 'Tú', text: 'Disculpe, mi equipaje no ha salido en la cinta transportadora.' },
+                          { speaker: 'Personal', text: 'Lamento escuchar eso. ¿Puedo ver su talón de reclamo de equipaje?' },
+                          { speaker: 'Tú', text: 'Sí, aquí tiene. Es una maleta grande color azul.' }
+                      ]
+                  }
+              ]
+          },
+          finanzas: {
+              title: 'Términos Financieros',
+              icon: 'fa-chart-line',
+              style: { bg: 'bg-amber-100 dark:bg-amber-900/40', text: 'text-amber-800 dark:text-amber-200', border: 'border-amber-200', progress: 'stroke-amber-500' },
+              lessons: [
+                  {
+                      id: 'f1',
+                      title: 'Opening a Bank Account',
+                      subtitle: 'Trámites bancarios esenciales.',
+                      image_url: 'https://images.unsplash.com/photo-1553729459-efe14ef6055d?q=80&w=1000&auto=format&fit=crop',
+                      dialogue: [
+                          { speaker: 'Tú', text: 'Good morning, I would like to open an account, please.', phonetic: 'Gúd mórning, ái wúd láik tu óupen án akáunt, plíis.' },
+                          { speaker: 'Ejecutivo', text: 'Certainly. Do you have a valid ID and a proof of address?', phonetic: 'Sértenli. Dú yú jáv á vá-lid ái-díi ánd á prúuf óv adrés?' },
+                          { speaker: 'Tú', text: 'Yes, here is my passport and a utility bill.', phonetic: 'Yés, jíer ís mái pás-port ánd á yu-tí-li-ti bíl.' }
+                      ],
+                      dialogue_es: [
+                          { speaker: 'Tú', text: 'Buenos días, me gustaría abrir una cuenta, por favor.' },
+                          { speaker: 'Ejecutivo', text: 'Por supuesto. ¿Tiene una identificación válida y un comprobante de domicilio?' },
+                          { speaker: 'Tú', text: 'Sí, aquí tiene mi pasaporte y una factura de servicios públicos.' }
+                      ]
+                  },
+                  {
+                      id: 'f2',
+                      title: 'Investing Fundamentals',
+                      subtitle: 'Comprende los conceptos clave de inversión.',
+                      image_url: 'https://images.unsplash.com/photo-1624996379697-f01d168b1a52?q=80&w=1000&auto=format&fit=crop',
+                      dialogue: [
+                          { speaker: 'Asesor/a', text: 'Could you tell me about your long-term investment goals?', phonetic: 'Kúd yú tél mí abáut yóor lóng-térm in-vést-ment góuls?' },
+                          { speaker: 'Tú', text: 'I\'m looking to diversify my portfolio with stocks and bonds.', phonetic: 'Áim lúu-king tu dai-vér-si-fai mái port-fó-lio uíz stóks ánd bónds.' }
+                      ],
+                      dialogue_es: [
+                          { speaker: 'Asesor/a', text: '¿Podría contarme sobre sus metas de inversión a largo plazo?' },
+                          { speaker: 'Tú', text: 'Busco diversificar mi portafolio con acciones y bonos.' }
+                      ]
+                  },
+                  {
+                      id: 'f3',
+                      title: 'Discussing a Bill',
+                      subtitle: 'Aclara dudas sobre cargos y estados de cuenta.',
+                      image_url: 'https://images.unsplash.com/photo-1579621970795-87facc2f976d?q=80&w=1000&auto=format&fit=crop',
+                      dialogue: [
+                          { speaker: 'Tú', text: 'Hello, I think there might be an error on my credit card statement.', phonetic: 'Jelóu, ái zínk déer máit bíi án é-ror ón mái kré-dit kárd stéit-ment.' },
+                          { speaker: 'Agente', text: 'Let me check that charge for you right away.', phonetic: 'Lét mí chék dát chárj fór yú ráit a-uéi.' }
+                      ],
+                      dialogue_es: [
+                          { speaker: 'Tú', text: 'Hola, creo que podría haber un error en mi estado de cuenta de la tarjeta.' },
+                          { speaker: 'Agente', text: 'Permítame revisar ese cargo de inmediato.' }
+                      ]
+                  },
+                  {
+                      id: 'f4',
+                      title: 'Talking About Savings',
+                      subtitle: 'Conversa sobre metas de ahorro personal.',
+                      image_url: 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1000&auto=format&fit=crop',
+                      dialogue: [
+                          { speaker: 'Amigo/a', text: 'I\'m trying to save up for a new car this year.', phonetic: 'Áim trái-ing tu séiv áp fór á niú kár dís jíer.' },
+                          { speaker: 'Tú', text: 'That\'s great! Every little bit adds up over time.', phonetic: 'Dats gréit! Évri lí-tol bít áds áp óu-ver táim.' }
+                      ],
+                      dialogue_es: [
+                          { speaker: 'Amigo/a', text: 'Estoy intentando ahorrar para un auto nuevo este año.' },
+                          { speaker: 'Tú', text: '¡Eso es genial! Cada pequeño ahorro se va acumulando con el tiempo.' }
+                      ]
+                  }
+              ]
+          }
+      };
 
-        // State Store
-        const state = {
-            currentUser: null,
-            completedLessons: new Set(),
-            currentCategory: null,
-            currentLesson: null,
-            isSignUp: false,
-            audioSpeed: 1.0,
-            voiceGender: 'female',
-            recordedAudioUrl: null,
-            mediaRecorder: null,
-            audioChunks: [],
-            isRecording: false,
-            recognition: null,
-            silenceTimer: null,
-            speechSynth: window.speechSynthesis
-        };
+      // --- FUNCIONES DE ALMACENAMIENTO Y PROGRESO ---
+      function getCompletedLessonsKey() {
+          const user = window.appLogic.getState().currentUser;
+          return user ? `completedLessons_${user.uid}` : 'completedLessons_guest';
+      }
 
-        // Standard Default Avatar Fallback
-        const GUEST_AVATAR = "https://placehold.co/100x100/e2e8f0/475569?text=User";
+      function loadCompletedLessons() {
+          return JSON.parse(localStorage.getItem(getCompletedLessonsKey())) || [];
+      }
 
-        // Curriculum Database
-        const CATEGORIES = [
-            {
-                id: 'cotidiana',
-                title: 'Vida Cotidiana',
-                icon: 'fa-house',
-                colorClass: 'bg-pastel-blue border-pastel-blue',
-                lessons: [
-                    {
-                        id: 'cot_1',
-                        title: 'Presentación Breve',
-                        phrases: [
-                            {
-                                en: "Hello! My name is Sarah and I work in marketing.",
-                                es: "¡Hola! Mi nombre es Sarah y trabajo en marketing.",
-                                phon: "Jelóu! Mái néim is Séra and ái uérk in márke-ting."
-                            },
-                            {
-                                en: "It is a pleasure to meet you all.",
-                                es: "Es un placer conocerlos a todos.",
-                                phon: "It is a plésher tu mít jú ol."
-                            }
-                        ]
-                    },
-                    {
-                        id: 'cot_2',
-                        title: 'Pedir café en la cafetería',
-                        phrases: [
-                            {
-                                en: "I'd like an iced latte with oat milk, please.",
-                                es: "Me gustaría un latte helado con leche de avena, por favor.",
-                                phon: "Áid láik an áist lá-tei uíz óut mílk, plís."
-                            }
-                        ]
-                    },
-                    {
-                        id: 'cot_3',
-                        title: 'Preguntar direcciones',
-                        phrases: [
-                            {
-                                en: "Excuse me, where is the nearest subway station?",
-                                es: "Disculpe, ¿dónde está la estación de metro más cercana?",
-                                phon: "Eks-kiús mí, juér is de nírest sáb-uei stéishan?"
-                            }
-                        ]
-                    },
-                    {
-                        id: 'cot_4',
-                        title: 'Hacer compras',
-                        phrases: [
-                            {
-                                en: "How much is this shirt and do you have it in medium?",
-                                es: "¿Cuánto cuesta esta camisa y la tienen en talla mediana?",
-                                phon: "Jáu mách is dís shért and dú jú jáv it in mí-diom?"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                id: 'profesional',
-                title: 'Vida Profesional',
-                icon: 'fa-briefcase',
-                colorClass: 'bg-pastel-purple border-pastel-purple',
-                lessons: [
-                    {
-                        id: 'prof_1',
-                        title: 'Presentación de equipo',
-                        phrases: [
-                            {
-                                en: "Everyone, I'd like to introduce our new Marketing Specialist, Alex.",
-                                es: "Todos, me gustaría presentarles a nuestro nuevo Especialista en Marketing, Alex.",
-                                phon: "Évri-uán, áid láik tu intro-diús áuar niú márke-ting espésha-list, Áleks."
-                            }
-                        ]
-                    },
-                    {
-                        id: 'prof_2',
-                        title: 'Agendar una reunión',
-                        phrases: [
-                            {
-                                en: "Could we schedule a quick call tomorrow at ten?",
-                                es: "¿Podríamos agendar una breve llamada mañana a las diez?",
-                                phon: "Kúd uí es-kédiul a kuík col tu-mórou at ten?"
-                            }
-                        ]
-                    },
-                    {
-                        id: 'prof_3',
-                        title: 'Enviar un reporte',
-                        phrases: [
-                            {
-                                en: "I have attached the updated quarterly performance analytics.",
-                                es: "He adjuntado las analíticas de rendimiento trimestral actualizadas.",
-                                phon: "Ái jáv a-tácht de ap-déited kuórter-li per-fór-mans a-na-lí-tiks."
-                            }
-                        ]
-                    },
-                    {
-                        id: 'prof_4',
-                        title: 'Liderar una presentación',
-                        phrases: [
-                            {
-                                en: "Let me walk you through the primary project goals.",
-                                es: "Permítanme guiarlos a través de los objetivos principales del proyecto.",
-                                phon: "Let mí uók jú zrú de prái-ma-ri pró-yekt góuls."
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                id: 'viajes',
-                title: 'Inglés para Viajes',
-                icon: 'fa-plane-departure',
-                colorClass: 'bg-pastel-green border-pastel-green',
-                lessons: [
-                    {
-                        id: 'via_1',
-                        title: 'En el Aeropuerto',
-                        phrases: [
-                            {
-                                en: "Where is the boarding gate for flight 452?",
-                                es: "¿Dónde está la puerta de embarque para el vuelo 452?",
-                                phon: "Juér is de bór-ding géit for fláit for-fáiv-tú?"
-                            }
-                        ]
-                    },
-                    {
-                        id: 'via_2',
-                        title: 'Registro de Hotel',
-                        phrases: [
-                            {
-                                en: "I have a reservation under the name of Smith for three nights.",
-                                es: "Tengo una reserva a nombre de Smith por tres noches.",
-                                phon: "Ái jáv a re-ser-véi-shan án-der de néim of Smíz for zrí náits."
-                            }
-                        ]
-                    },
-                    {
-                        id: 'via_3',
-                        title: 'Pedir un taxi',
-                        phrases: [
-                            {
-                                en: "Can you take me to the city center, please?",
-                                es: "¿Puede llevarme al centro de la ciudad, por favor?",
-                                phon: "Kan jú téik mí tu de sí-ti sén-ter, plís?"
-                            }
-                        ]
-                    },
-                    {
-                        id: 'via_4',
-                        title: 'Emergencias de viaje',
-                        phrases: [
-                            {
-                                en: "I lost my passport, where is the embassy?",
-                                es: "Perdí mi pasaporte, ¿dónde está la embajada?",
-                                phon: "Ái lost mái pás-port, juér is de ém-ba-si?"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                id: 'financieros',
-                title: 'Términos Financieros',
-                icon: 'fa-chart-line',
-                colorClass: 'bg-pastel-yellow border-pastel-yellow',
-                lessons: [
-                    {
-                        id: 'fin_1',
-                        title: 'Presupuesto y Gastos',
-                        phrases: [
-                            {
-                                en: "We need to optimize our budget to reduce monthly expenses.",
-                                es: "Necesitamos optimizar nuestro presupuesto para reducir gastos mensuales.",
-                                phon: "Uí níd tu óp-ti-máis áuar bá-jet tu re-diús mánz-li eks-pén-ses."
-                            }
-                        ]
-                    },
-                    {
-                        id: 'fin_2',
-                        title: 'Inversión y Retorno',
-                        phrases: [
-                            {
-                                en: "What is the projected return on investment for this option?",
-                                es: "¿Cuál es el retorno de inversión proyectado para esta opción?",
-                                phon: "Juát is de pro-yék-ted ri-térn on in-vést-ment for dís óp-shan?"
-                            }
-                        ]
-                    },
-                    {
-                        id: 'fin_3',
-                        title: 'Estado de Cuenta',
-                        phrases: [
-                            {
-                                en: "Please review the financial statement for any discrepancies.",
-                                es: "Por favor revise el estado financiero en busca de discrepancias.",
-                                phon: "Plís ri-viú de fai-nán-shal stéit-ment for é-ni dis-kré-pan-sis."
-                            }
-                        ]
-                    },
-                    {
-                        id: 'fin_4',
-                        title: 'Negociación de contrato',
-                        phrases: [
-                            {
-                                en: "The terms of payment must be clarified before signing.",
-                                es: "Los términos de pago deben aclararse antes de firmar.",
-                                phon: "De térms of péi-ment mást bí klá-ri-fáid bi-fór sái-ning."
-                            }
-                        ]
-                    }
-                ]
-            }
-        ];
+      async function syncCompletedLessonsToCloud(updatedList) {
+          const user = window.appLogic.getState().currentUser;
+          if (user && !user.isAnonymous) {
+              try {
+                  await setDoc(doc(db, "users", user.uid), {
+                      completedLessons: updatedList,
+                      lastUpdated: new Date().toISOString()
+                  }, { merge: true });
+              } catch (e) {
+                  console.error("Error al guardar progreso en Firestore:", e);
+              }
+          }
+      }
 
-        // Global Controllers Window Object
-        window.appLogic = {
-            getState: () => state,
+      window.authFunctions = {
+          loginWithGoogle: async () => {
+              try {
+                  const provider = new GoogleAuthProvider();
+                  await signInWithPopup(auth, provider);
+              } catch (e) {
+                  try {
+                      const provider = new GoogleAuthProvider();
+                      await signInWithRedirect(auth, provider);
+                  } catch (err) {
+                      document.getElementById('login-error').textContent = "Error al autenticar con Google.";
+                  }
+              }
+          },
+          registerUser: async (event) => {
+              if (event) event.preventDefault();
+              const name = document.getElementById('register-name').value;
+              const email = document.getElementById('register-email').value;
+              const password = document.getElementById('register-password').value;
+              try {
+                  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                  await updateProfile(userCredential.user, { displayName: name });
+              } catch (error) {
+                  document.getElementById('register-error').textContent = error.message;
+              }
+          },
+          loginUser: async (event) => {
+              if (event) event.preventDefault();
+              const email = document.getElementById('login-email').value;
+              const password = document.getElementById('login-password').value;
+              try {
+                  await signInWithEmailAndPassword(auth, email, password);
+              } catch (error) {
+                  document.getElementById('login-error').textContent = "Correo o contraseña incorrectos.";
+              }
+          },
+          logoutUser: async () => {
+              await signOut(auth);
+              window.appLogic.showPresentation();
+          },
+          continueWithoutAccount: () => {
+              window.appLogic.getState().currentUser = { name: 'Invitado', uid: 'guest_' + Date.now(), isAnonymous: true };
+              window.appLogic.updateAuthUI();
+              window.appLogic.showAppContent();
+          }
+      };
 
-            renderHeader: () => {
-                const headerUI = document.getElementById('authHeaderUI');
-                if (state.currentUser) {
-                    const avatarSrc = state.currentUser.photoURL || GUEST_AVATAR;
-                    headerUI.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <img src="${avatarSrc}" onerror="this.src='${GUEST_AVATAR}'" class="w-9 h-9 rounded-full object-cover border border-gray-300 shadow-sm">
-                            <span class="text-xs font-semibold text-gray-700 hidden sm:inline">${state.currentUser.name}</span>
-                            <button onclick="window.appLogic.logout()" class="px-3 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition">
-                                Salir
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    headerUI.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <img src="${GUEST_AVATAR}" class="w-9 h-9 rounded-full border border-gray-200">
-                            <button onclick="window.appLogic.openAuthModal()" class="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition">
-                                Iniciar Sesión
-                            </button>
-                        </div>
-                    `;
-                }
-            },
+      window.appLogic = (() => {
+          const appState = { currentUser: null, currentCategory: null, selectedLessonId: null, selectedVoiceGender: 'female', speechRate: 1.0 };
+          
+          function showPresentation() {
+              document.getElementById('app-content').classList.add('hidden');
+              document.getElementById('splash-screen').classList.remove('hidden', 'fade-out');
+          }
+          
+          function showAppContent() {
+              document.getElementById('splash-screen').classList.add('fade-out');
+              setTimeout(() => {
+                  document.getElementById('splash-screen').classList.add('hidden');
+                  document.getElementById('app-content').classList.remove('hidden');
+                  renderCategoryCards();
+              }, 400); 
+          }
 
-            renderCategories: () => {
-                state.currentCategory = null;
-                state.currentLesson = null;
-                const container = document.getElementById('mainContainer');
+          function openAuthModal(formType = 'login') {
+              document.getElementById('auth-modal').classList.add('visible');
+              document.getElementById('login-form').classList.toggle('hidden', formType !== 'login');
+              document.getElementById('register-form').classList.toggle('hidden', formType !== 'register');
+          }
 
-                let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
+          function closeAuthModal(event, forceClose = false) {
+              if (forceClose || (event && event.target.id === 'auth-modal')) {
+                  document.getElementById('auth-modal').classList.remove('visible');
+              }
+          }
 
-                CATEGORIES.forEach(cat => {
-                    const completedCount = cat.lessons.filter(l => state.completedLessons.has(l.id)).length;
-                    const totalCount = cat.lessons.length;
-                    const isFullyCompleted = completedCount === totalCount && totalCount > 0;
+          function updateAuthUI() {
+              const user = appState.currentUser;
+              const authControls = document.getElementById('auth-controls');
+              if (user) {
+                  authControls.innerHTML = `<button onclick="window.authFunctions.logoutUser()" class="px-4 py-2 text-sm bg-gray-200 dark:bg-dark-container rounded-full font-medium">Cerrar Sesión (${user.name || 'Usuario'})</button>`;
+              } else {
+                  authControls.innerHTML = `<button onclick="window.appLogic.openAuthModal('login')" class="px-4 py-2 text-sm font-semibold bg-orange-500 text-white rounded-full">Iniciar Sesión</button>`;
+              }
+          }
 
-                    html += `
-                        <div onclick="window.appLogic.openCategory('${cat.id}')" class="p-6 rounded-2xl border-2 ${cat.colorClass} shadow-sm hover:shadow-md transition cursor-pointer flex items-center justify-between">
-                            <div class="flex items-center gap-4">
-                                <div class="w-14 h-14 rounded-2xl bg-white/80 backdrop-blur-sm flex items-center justify-center text-2xl shadow-sm">
-                                    <i class="fa-solid ${cat.icon}"></i>
-                                </div>
-                                <div>
-                                    <h3 class="text-xl font-bold mb-1">${cat.title}</h3>
-                                    <p class="text-xs opacity-80 font-medium">${completedCount} de ${totalCount} lecciones completadas</p>
-                                </div>
-                            </div>
-                            <div>
-                                ${isFullyCompleted ? 
-                                    `<div class="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm shadow"><i class="fa-solid fa-check"></i></div>` : 
-                                    `<div class="text-xs font-bold bg-white/70 px-3 py-1.5 rounded-lg border border-black/5">${completedCount}/${totalCount}</div>`
-                                }
-                            </div>
-                        </div>
-                    `;
-                });
+          function renderCategoryCards() {
+              const categorySelection = document.getElementById('category-selection');
+              const completedLessons = loadCompletedLessons();
 
-                html += `</div>`;
-                container.innerHTML = html;
-            },
+              categorySelection.innerHTML = Object.keys(lessonsData).map(key => {
+                  const cat = lessonsData[key];
+                  const total = cat.lessons.length;
+                  const doneCount = cat.lessons.filter(l => completedLessons.includes(l.id)).length;
+                  const isFinished = doneCount === total && total > 0;
 
-            openCategory: (catId) => {
-                state.currentCategory = CATEGORIES.find(c => c.id === catId);
-                const container = document.getElementById('mainContainer');
+                  return `
+                      <button onclick="window.appLogic.showLessonsView('${key}')" class="p-6 rounded-2xl ${cat.style.bg} ${cat.style.text} shadow-md hover:shadow-xl transition flex flex-col items-center text-center justify-between border ${cat.style.border}">
+                          <div class="flex flex-col items-center">
+                              <div class="progress-ring mb-3">
+                                  <svg class="progress-ring__svg" width="60" height="60">
+                                      <circle class="text-gray-300 dark:text-gray-700" stroke="currentColor" stroke-width="6" fill="transparent" r="25" cx="30" cy="30"/>
+                                      <circle class="${cat.style.progress} progress-ring__circle" stroke="currentColor" stroke-width="6" fill="transparent" r="25" cx="30" cy="30" style="stroke-dasharray: 157; stroke-dashoffset: ${157 - (doneCount / total) * 157}"/>
+                                  </svg>
+                                  <div class="progress-ring__text">
+                                      ${isFinished ? '<i class="fa-solid fa-check text-green-600 text-xl"></i>' : `<i class="fa-solid ${cat.icon} text-xl"></i>`}
+                                  </div>
+                              </div>
+                              <h3 class="font-bold text-xl mb-1">${cat.title}</h3>
+                          </div>
+                          <p class="text-xs font-semibold opacity-80 mt-2">${doneCount} de ${total} lecciones</p>
+                      </button>
+                  `;
+              }).join('');
+          }
 
-                let html = `
-                    <div class="mb-6 flex items-center justify-between">
-                        <button onclick="window.appLogic.renderCategories()" class="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-2">
-                            <i class="fa-solid fa-arrow-left"></i> Volver a categorías
-                        </button>
-                        <h2 class="text-xl font-bold text-gray-800">${state.currentCategory.title}</h2>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                `;
+          function showLessonsView(key) {
+              appState.currentCategory = key;
+              document.getElementById('category-selection').classList.add('hidden');
+              document.getElementById('lessons-view-container').classList.remove('hidden');
+              document.getElementById('lessons-title').textContent = lessonsData[key].title;
+              renderLessonsList(key);
+          }
 
-                state.currentCategory.lessons.forEach(l => {
-                    const isDone = state.completedLessons.has(l.id);
-                    html += `
-                        <div onclick="window.appLogic.openLesson('${l.id}')" class="p-5 bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 shadow-sm transition cursor-pointer flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="w-6 h-6 rounded-md border flex items-center justify-center text-xs ${isDone ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300'}">
-                                    ${isDone ? '<i class="fa-solid fa-check"></i>' : ''}
-                                </div>
-                                <span class="font-semibold text-gray-800 text-sm">${l.title}</span>
-                            </div>
-                            <i class="fa-solid fa-chevron-right text-gray-400 text-xs"></i>
-                        </div>
-                    `;
-                });
+          function goBackToCategories() {
+              document.getElementById('lessons-view-container').classList.add('hidden');
+              document.getElementById('category-selection').classList.remove('hidden');
+              renderCategoryCards();
+          }
 
-                html += `</div>`;
-                container.innerHTML = html;
-            },
+          function renderLessonsList(categoryKey) {
+              const listContainer = document.getElementById('lessons-list-column');
+              const lessons = lessonsData[categoryKey].lessons;
+              const completedLessons = loadCompletedLessons();
 
-            openLesson: (lessonId) => {
-                const lesson = state.currentCategory.lessons.find(l => l.id === lessonId);
-                state.currentLesson = lesson;
-                const isDone = state.completedLessons.has(lesson.id);
-                const container = document.getElementById('mainContainer');
+              listContainer.innerHTML = lessons.map(lesson => {
+                  const isDone = completedLessons.includes(lesson.id);
+                  return `
+                      <div onclick="window.appLogic.selectLesson('${lesson.id}')" class="p-4 bg-white dark:bg-dark-surface rounded-xl shadow cursor-pointer border-2 ${isDone ? 'border-green-500' : 'border-transparent'} hover:border-purple-500 transition flex items-center justify-between">
+                          <div>
+                              <h3 class="font-bold text-lg">${lesson.title}</h3>
+                              <p class="text-sm text-gray-500 dark:text-gray-400">${lesson.subtitle}</p>
+                          </div>
+                          ${isDone ? '<span class="text-green-500 text-xl font-bold"><i class="fa-solid fa-circle-check"></i></span>' : ''}
+                      </div>
+                  `;
+              }).join('');
 
-                let html = `
-                    <div class="mb-6 flex items-center justify-between">
-                        <button onclick="window.appLogic.openCategory('${state.currentCategory.id}')" class="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-2">
-                            <i class="fa-solid fa-arrow-left"></i> Volver a ${state.currentCategory.title}
-                        </button>
-                        <button onclick="window.appLogic.toggleLessonCompletion('${lesson.id}')" class="px-4 py-2 rounded-xl text-xs font-bold border ${isDone ? 'bg-green-50 text-green-700 border-green-300' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'} flex items-center gap-2">
-                            <i class="fa-solid ${isDone ? 'fa-check-circle' : 'fa-circle'} text-sm"></i>
-                            ${isDone ? 'Completada' : 'Marcar como completada'}
-                        </button>
-                    </div>
+              if (lessons.length > 0) {
+                  selectLesson(lessons[0].id);
+              }
+          }
 
-                    <!-- Voice & Speed Control Panel -->
-                    <div class="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-4">
-                        <div class="flex items-center gap-3">
-                            <label class="text-xs font-semibold text-gray-600">Velocidad:</label>
-                            <select onchange="window.appLogic.setSpeed(parseFloat(this.value))" class="text-xs font-semibold border border-gray-300 rounded-lg px-2.5 py-1.5 bg-gray-50 outline-none">
-                                <option value="0.65" ${state.audioSpeed === 0.65 ? 'selected' : ''}>0.65x (Muy Lenta)</option>
-                                <option value="0.8" ${state.audioSpeed === 0.8 ? 'selected' : ''}>0.8x (Lenta)</option>
-                                <option value="1.0" ${state.audioSpeed === 1.0 ? 'selected' : ''}>1.0x (Normal)</option>
-                                <option value="1.2" ${state.audioSpeed === 1.2 ? 'selected' : ''}>1.2x (Rápida)</option>
-                            </select>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="window.appLogic.setGender('female')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border ${state.voiceGender === 'female' ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-600'}">
-                                Femenina
-                            </button>
-                            <button onclick="window.appLogic.setGender('male')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border ${state.voiceGender === 'male' ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-600'}">
-                                Masculina
-                            </button>
-                        </div>
-                    </div>
+          function selectLesson(lessonId) {
+              appState.selectedLessonId = lessonId;
+              const lesson = lessonsData[appState.currentCategory].lessons.find(l => l.id === lessonId);
+              const detailContainer = document.getElementById('lesson-detail-column');
+              const completedLessons = loadCompletedLessons();
+              const isDone = completedLessons.includes(lessonId);
 
-                    <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm space-y-6">
-                        <h3 class="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">${lesson.title}</h3>
+              detailContainer.innerHTML = `
+                  <div class="bg-white dark:bg-dark-surface p-6 rounded-2xl shadow-lg">
+                      <div class="flex items-center justify-between mb-4">
+                          <h3 class="text-2xl font-bold">${lesson.title}</h3>
+                          <label class="flex items-center gap-2 cursor-pointer bg-purple-50 dark:bg-dark-container px-3 py-1.5 rounded-lg border border-purple-200">
+                              <input type="checkbox" ${isDone ? 'checked' : ''} onchange="window.appLogic.toggleComplete('${lesson.id}')" class="w-4 h-4 text-purple-600 rounded">
+                              <span class="text-xs font-semibold text-purple-700 dark:text-purple-300">Marcar como completada</span>
+                          </label>
+                      </div>
 
-                        <div class="space-y-6">
-                `;
+                      <!-- Controles de Velocidad y Voz -->
+                      <div class="flex items-center justify-between mb-6 bg-gray-50 dark:bg-dark-container p-3 rounded-xl border border-gray-100 dark:border-gray-700 flex-wrap gap-2">
+                          <div class="flex space-x-2">
+                              <button onclick="window.appLogic.setVoiceGender('female')" id="btn-female" class="px-3 py-1.5 rounded-full text-xs font-semibold transition ${appState.selectedVoiceGender === 'female' ? 'bg-purple-600 text-white' : 'bg-gray-200 dark:bg-dark-surface'}">Femenina</button>
+                              <button onclick="window.appLogic.setVoiceGender('male')" id="btn-male" class="px-3 py-1.5 rounded-full text-xs font-semibold transition ${appState.selectedVoiceGender === 'male' ? 'bg-purple-600 text-white' : 'bg-gray-200 dark:bg-dark-surface'}">Masculina</button>
+                          </div>
+                          <div class="flex items-center gap-2">
+                              <label class="text-xs font-semibold text-gray-600 dark:text-gray-300"><i class="fa-solid fa-gauge mr-1"></i> Velocidad:</label>
+                              <select onchange="window.appLogic.setSpeechRate(this.value)" class="text-xs font-semibold p-1.5 rounded-lg bg-white dark:bg-dark-surface border border-gray-300 dark:border-gray-600 focus:outline-none">
+                                  <option value="0.65" ${appState.speechRate === 0.65 ? 'selected' : ''}>0.65x (Muy Lenta)</option>
+                                  <option value="0.8" ${appState.speechRate === 0.8 ? 'selected' : ''}>0.8x (Lenta)</option>
+                                  <option value="1.0" ${appState.speechRate === 1.0 ? 'selected' : ''}>1.0x (Normal)</option>
+                                  <option value="1.2" ${appState.speechRate === 1.2 ? 'selected' : ''}>1.2x (Rápida)</option>
+                              </select>
+                          </div>
+                      </div>
+                      
+                      <img src="${lesson.image_url}" alt="Lesson" class="w-full h-48 object-cover rounded-xl mb-6">
+                      
+                      <div class="space-y-4">
+                          ${lesson.dialogue.map((item, idx) => `
+                              <div class="p-4 bg-gray-50 dark:bg-dark-container rounded-xl">
+                                  <div class="flex items-center justify-between mb-2">
+                                      <span class="font-bold text-purple-600 dark:text-purple-400">${item.speaker}:</span>
+                                      <div class="flex items-center gap-2">
+                                          <button onclick="window.appLogic.speakText(\`${item.text}\`)" class="audio-btn"><i class="fa-solid fa-volume-high"></i></button>
+                                          <button onclick="window.appLogic.startSpeechRecognition(${idx}, \`${item.text}\`)" class="audio-btn bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300" title="Practicar"><i class="fa-solid fa-microphone"></i></button>
+                                      </div>
+                                  </div>
+                                  <p class="font-semibold">${item.text}</p>
+                                  <p class="phonetic-text">${item.phonetic}</p>
+                                  <p class="text-xs text-gray-500 mt-1">${lesson.dialogue_es[idx].text}</p>
+                                  <div id="recognition-result-${idx}" class="recognition-result text-xs"></div>
+                                  <div id="audio-playback-container-${idx}"></div>
+                              </div>
+                          `).join('')}
+                      </div>
+                  </div>
+              `;
+          }
 
-                lesson.phrases.forEach((phrase, idx) => {
-                    html += `
-                        <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
-                            <div class="flex items-start justify-between gap-3">
-                                <div>
-                                    <p class="text-base font-bold text-gray-900">${phrase.en}</p>
-                                    <p class="text-xs text-indigo-700 font-medium italic mt-1">🗣 ${phrase.phon}</p>
-                                    <p class="text-xs text-gray-600 mt-1">${phrase.es}</p>
-                                </div>
-                                <button onclick="window.appLogic.speakText('${phrase.en.replace(/'/g, "\\'")}')" class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition shadow">
-                                    <i class="fa-solid fa-volume-high"></i>
-                                </button>
-                            </div>
+          function setVoiceGender(gender) {
+              appState.selectedVoiceGender = gender;
+              selectLesson(appState.selectedLessonId);
+          }
 
-                            <div class="pt-3 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
-                                <button onclick="window.appLogic.toggleRecordSpeech('${phrase.en.replace(/'/g, "\\'")}', ${idx})" id="recBtn_${idx}" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-2">
-                                    <i class="fa-solid fa-microphone"></i> Practicar Pronunciación
-                                </button>
-                                <div id="recStatus_${idx}" class="text-xs font-semibold text-gray-500"></div>
-                            </div>
+          function setSpeechRate(rate) {
+              appState.speechRate = parseFloat(rate);
+          }
 
-                            <div id="audioPlayback_${idx}" class="hidden pt-2">
-                                <audio id="userAudio_${idx}" controls class="w-full h-8"></audio>
-                            </div>
-                        </div>
-                    `;
-                });
+          async function toggleComplete(lessonId) {
+              let completed = loadCompletedLessons();
+              if (completed.includes(lessonId)) {
+                  completed = completed.filter(id => id !== lessonId);
+              } else {
+                  completed.push(lessonId);
+              }
+              localStorage.setItem(getCompletedLessonsKey(), JSON.stringify(completed));
+              await syncCompletedLessonsToCloud(completed);
 
-                html += `</div></div>`;
-                container.innerHTML = html;
-            },
+              renderLessonsList(appState.currentCategory);
+              selectLesson(lessonId);
+          }
 
-            setSpeed: (speed) => {
-                state.audioSpeed = speed;
-            },
+          function speakText(text) {
+              if (!('speechSynthesis' in window)) return;
+              window.speechSynthesis.cancel();
+              const utterance = new SpeechSynthesisUtterance(text);
+              utterance.lang = 'en-US';
+              utterance.rate = appState.speechRate;
 
-            setGender: (gender) => {
-                state.voiceGender = gender;
-                if (state.currentLesson) {
-                    window.appLogic.openLesson(state.currentLesson.id);
-                }
-            },
+              const voices = window.speechSynthesis.getVoices();
+              
+              if (appState.selectedVoiceGender === 'male') {
+                  utterance.pitch = 0.85;
+                  const maleVoice = voices.find(v => (v.lang === 'en-US' || v.lang.startsWith('en')) && 
+                      (v.name.includes('Natural') || v.name.includes('Guy') || v.name.includes('Google US English') || v.name.includes('David') || v.name.includes('Male')));
+                  if (maleVoice) utterance.voice = maleVoice;
+              } else {
+                  // Ajuste para voz femenina jovial, alegre y clara en inglés de EE.UU.
+                  utterance.pitch = 1.1; 
+                  const priorityFemaleVoices = [
+                      'Google US English', 'Samantha', 'Ava', 'Jenny', 'Joanna', 'Kimberly', 'Victoria', 'Zira', 'Female'
+                  ];
+                  let femaleVoice = null;
+                  for (const voiceName of priorityFemaleVoices) {
+                      femaleVoice = voices.find(v => (v.lang === 'en-US' || v.lang.startsWith('en')) && v.name.includes(voiceName));
+                      if (femaleVoice) break;
+                  }
+                  if (!femaleVoice) {
+                      femaleVoice = voices.find(v => (v.lang === 'en-US' || v.lang.startsWith('en')) && !v.name.toLowerCase().includes('male'));
+                  }
+                  if (femaleVoice) utterance.voice = femaleVoice;
+              }
 
-            speakText: (text) => {
-                if (!state.speechSynth) return;
-                state.speechSynth.cancel();
+              window.speechSynthesis.speak(utterance);
+          }
 
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'en-US';
-                utterance.rate = state.audioSpeed;
+          function startSpeechRecognition(index, expectedText) {
+              const resultEl = document.getElementById(`recognition-result-${index}`);
+              const audioContainer = document.getElementById(`audio-playback-container-${index}`);
+              resultEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Escuchando...';
+              audioContainer.innerHTML = '';
 
-                const voices = state.speechSynth.getVoices();
-                let selectedVoice = null;
+              if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                      const mediaRecorder = new MediaRecorder(stream);
+                      let chunks = [];
+                      mediaRecorder.ondataavailable = e => chunks.push(e.data);
+                      mediaRecorder.onstop = () => {
+                          const blob = new Blob(chunks, { type: 'audio/webm' });
+                          const url = URL.createObjectURL(blob);
+                          audioContainer.innerHTML = `
+                              <div class="flex items-center space-x-2 mt-2 bg-purple-50 dark:bg-dark-surface p-2 rounded-lg border border-purple-100 dark:border-gray-700">
+                                  <span class="text-xs font-semibold text-purple-600 dark:text-purple-300">Tu voz:</span>
+                                  <audio controls src="${url}" class="h-8 w-full"></audio>
+                              </div>
+                          `;
+                          stream.getTracks().forEach(t => t.stop());
+                      };
+                      mediaRecorder.start();
+                      window._currentMediaRecorder = mediaRecorder;
+                  }).catch(console.error);
+              }
 
-                if (state.voiceGender === 'female') {
-                    selectedVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google US English') || v.name.includes('Samantha') || v.name.includes('Jenny') || v.name.includes('Ava') || v.name.includes('Female')));
-                } else {
-                    selectedVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('David') || v.name.includes('Male') || v.name.includes('Guy')));
-                }
+              const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+              if (!SpeechRecognition) {
+                  resultEl.textContent = 'El navegador no soporta reconocimiento de voz.';
+                  return;
+              }
 
-                if (!selectedVoice) {
-                    selectedVoice = voices.find(v => v.lang.startsWith('en'));
-                }
+              const recognition = new SpeechRecognition();
+              recognition.lang = 'en-US';
+              recognition.start();
 
-                if (selectedVoice) utterance.voice = selectedVoice;
-                state.speechSynth.speak(utterance);
-            },
+              recognition.onresult = (e) => {
+                  const transcript = e.results[0][0].transcript;
+                  const cleanExpected = expectedText.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+                  const cleanActual = transcript.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
 
-            toggleRecordSpeech: async (expectedText, idx) => {
-                const recBtn = document.getElementById(`recBtn_${idx}`);
-                const statusDiv = document.getElementById(`recStatus_${idx}`);
-                const playbackContainer = document.getElementById(`audioPlayback_${idx}`);
-                const audioElement = document.getElementById(`userAudio_${idx}`);
+                  if (window._currentMediaRecorder && window._currentMediaRecorder.state !== 'inactive') {
+                      window._currentMediaRecorder.stop();
+                  }
 
-                if (state.isRecording) {
-                    if (state.mediaRecorder) state.mediaRecorder.stop();
-                    if (state.recognition) state.recognition.stop();
-                    state.isRecording = false;
-                    recBtn.classList.replace('bg-gray-800', 'bg-red-600');
-                    recBtn.innerHTML = `<i class="fa-solid fa-microphone"></i> Practicar Pronunciación`;
-                    return;
-                }
+                  if (cleanExpected === cleanActual) {
+                      resultEl.innerHTML = `<span class="text-green-600 font-semibold"><i class="fa-solid fa-check"></i> ¡Excelente! Dijiste: "${transcript}"</span>`;
+                  } else {
+                      resultEl.innerHTML = `<span class="text-amber-600 font-semibold"><i class="fa-solid fa-exclamation-triangle"></i> Dijiste: "${transcript}"</span>`;
+                  }
+              };
 
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    
-                    // Audio Recording
-                    state.audioChunks = [];
-                    state.mediaRecorder = new MediaRecorder(stream);
-                    state.mediaRecorder.ondataavailable = e => state.audioChunks.push(e.data);
-                    state.mediaRecorder.onstop = () => {
-                        const audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
-                        state.recordedAudioUrl = URL.createObjectURL(audioBlob);
-                        audioElement.src = state.recordedAudioUrl;
-                        playbackContainer.classList.remove('hidden');
-                        stream.getTracks().forEach(t => t.stop());
-                    };
+              recognition.onerror = (e) => {
+                  if (window._currentMediaRecorder && window._currentMediaRecorder.state !== 'inactive') {
+                      window._currentMediaRecorder.stop();
+                  }
+                  resultEl.innerHTML = `<span class="text-red-500">Error: ${e.error}</span>`;
+              };
+          }
 
-                    state.mediaRecorder.start();
-                    state.isRecording = true;
+          return {
+              showAppContent, openAuthModal, closeAuthModal, updateAuthUI, showPresentation, 
+              showLessonsView, goBackToCategories, renderLessonsList, selectLesson, 
+              speakText, startSpeechRecognition, renderCategoryCards, toggleComplete,
+              setVoiceGender, setSpeechRate,
+              getState: () => appState
+          };
+      })();
 
-                    recBtn.classList.replace('bg-red-600', 'bg-gray-800');
-                    recBtn.innerHTML = `<i class="fa-solid fa-stop"></i> Detener`;
-                    statusDiv.innerHTML = `<span class="text-amber-600 animate-pulse">Escuchando... (se detendrá al detectar silencio)</span>`;
+      window.toggleAuthForm = () => {
+          document.getElementById('login-form').classList.toggle('hidden');
+          document.getElementById('register-form').classList.toggle('hidden');
+      };
 
-                    // Speech Recognition
-                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                    if (SpeechRecognition) {
-                        state.recognition = new SpeechRecognition();
-                        state.recognition.lang = 'en-US';
-                        state.recognition.interimResults = false;
+      onAuthStateChanged(auth, async (user) => {
+          const appState = window.appLogic.getState();
+          if (user) {
+              appState.currentUser = { name: user.displayName || user.email, email: user.email, uid: user.uid, isAnonymous: user.isAnonymous };
+              
+              if (!user.isAnonymous) {
+                  try {
+                      const userDoc = await getDoc(doc(db, "users", user.uid));
+                      if (userDoc.exists() && userDoc.data().completedLessons) {
+                          localStorage.setItem(`completedLessons_${user.uid}`, JSON.stringify(userDoc.data().completedLessons));
+                      }
+                  } catch (e) {
+                      console.error("Error sincronizando progreso desde la nube:", e);
+                  }
+              }
 
-                        state.recognition.onresult = (event) => {
-                            const spoken = event.results[0][0].transcript.toLowerCase().trim();
-                            const cleanExpected = expectedText.toLowerCase().replace(/[^a-z0-9 ]/g, '');
-                            const cleanSpoken = spoken.replace(/[^a-z0-9 ]/g, '');
+              window.appLogic.closeAuthModal(null, true);
+              window.appLogic.showAppContent();
+          } else {
+              appState.currentUser = null;
+          }
+          window.appLogic.updateAuthUI();
+      });
 
-                            if (cleanSpoken.includes(cleanExpected) || cleanExpected.includes(cleanSpoken)) {
-                                statusDiv.innerHTML = `<span class="text-green-600 font-bold">✓ ¡Excelente pronunciación! ("${spoken}")</span>`;
-                            } else {
-                                statusDiv.innerHTML = `<span class="text-red-600 font-bold">✕ Inténtalo de nuevo. Dijiste: "${spoken}"</span>`;
-                            }
-                        };
+      getRedirectResult(auth).then(result => {
+          if (result && result.user) {
+              window.appLogic.closeAuthModal(null, true);
+              window.appLogic.showAppContent();
+          }
+      }).catch(console.error);
 
-                        state.recognition.onerror = () => {
-                            statusDiv.innerHTML = `<span class="text-gray-500">Audio grabado. Escucha tu voz abajo.</span>`;
-                        };
-
-                        state.recognition.start();
-                    }
-
-                } catch (err) {
-                    statusDiv.innerHTML = `<span class="text-red-600">Error al acceder al micrófono.</span>`;
-                }
-            },
-
-            toggleLessonCompletion: async (lessonId) => {
-                if (state.completedLessons.has(lessonId)) {
-                    state.completedLessons.delete(lessonId);
-                } else {
-                    state.completedLessons.add(lessonId);
-                }
-
-                const completedArr = Array.from(state.completedLessons);
-                
-                if (state.currentUser && !state.currentUser.isAnonymous) {
-                    try {
-                        await setDoc(doc(db, "users", state.currentUser.uid), {
-                            completedLessons: completedArr
-                        }, { merge: true });
-                    } catch (e) {
-                        console.error("Error guardando en Firestore:", e);
-                    }
-                } else {
-                    localStorage.setItem('completedLessons_guest', JSON.stringify(completedArr));
-                }
-
-                window.appLogic.openLesson(lessonId);
-            },
-
-            openAuthModal: () => {
-                document.getElementById('authModal').classList.remove('hidden');
-            },
-
-            closeAuthModal: () => {
-                document.getElementById('authModal').classList.add('hidden');
-                document.getElementById('authError').classList.add('hidden');
-            },
-
-            toggleAuthMode: () => {
-                state.isSignUp = !state.isSignUp;
-                document.getElementById('authModalTitle').innerText = state.isSignUp ? 'Crear Cuenta' : 'Iniciar Sesión';
-                document.getElementById('authSubmitBtn').innerText = state.isSignUp ? 'Registrarse' : 'Entrar';
-                document.getElementById('toggleAuthBtn').innerText = state.isSignUp ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate';
-            },
-
-            loginWithGoogle: async () => {
-                const provider = new GoogleAuthProvider();
-                try {
-                    await signInWithPopup(auth, provider);
-                    window.appLogic.closeAuthModal();
-                } catch (e) {
-                    try {
-                        await signInWithRedirect(auth, provider);
-                    } catch (err) {
-                        document.getElementById('authError').innerText = err.message;
-                        document.getElementById('authError').classList.remove('hidden');
-                    }
-                }
-            },
-
-            handleEmailAuth: async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('authEmail').value;
-                const password = document.getElementById('authPassword').value;
-                try {
-                    if (state.isSignUp) {
-                        await createUserWithEmailAndPassword(auth, email, password);
-                    } else {
-                        await signInWithEmailAndPassword(auth, email, password);
-                    }
-                    window.appLogic.closeAuthModal();
-                } catch (err) {
-                    document.getElementById('authError').innerText = err.message;
-                    document.getElementById('authError').classList.remove('hidden');
-                }
-            },
-
-            logout: async () => {
-                await signOut(auth);
-                state.currentUser = null;
-                state.completedLessons = new Set();
-                window.appLogic.renderHeader();
-                window.appLogic.renderCategories();
-            }
-        };
-
-        // Firebase Auth State Listener
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                state.currentUser = {
-                    name: user.displayName || user.email.split('@')[0],
-                    email: user.email,
-                    uid: user.uid,
-                    photoURL: user.photoURL || GUEST_AVATAR,
-                    isAnonymous: user.isAnonymous
-                };
-
-                try {
-                    const userDoc = await getDoc(doc(db, "users", user.uid));
-                    if (userDoc.exists() && userDoc.data().completedLessons) {
-                        state.completedLessons = new Set(userDoc.data().completedLessons);
-                    }
-                } catch (e) {
-                    console.error("Error sincronizando progreso:", e);
-                }
-            } else {
-                state.currentUser = null;
-                const localData = localStorage.getItem('completedLessons_guest');
-                state.completedLessons = new Set(localData ? JSON.parse(localData) : []);
-            }
-
-            window.appLogic.renderHeader();
-            if (!state.currentLesson) {
-                window.appLogic.renderCategories();
-            }
-        });
-
-        // Initialize Web Speech Synthesis Voices
-        if (state.speechSynth) {
-            state.speechSynth.onvoiceschanged = () => {};
-        }
-
-        // Handle Redirect Result
-        getRedirectResult(auth).catch((err) => console.log(err));
-
-        // Initial Boot
-        window.appLogic.renderHeader();
-        window.appLogic.renderCategories();
+      window.appLogic.showPresentation();
     </script>
 </body>
 </html>

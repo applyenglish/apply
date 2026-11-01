@@ -939,6 +939,7 @@
           document.getElementById('login-form').classList.toggle('hidden');
           document.getElementById('register-form').classList.toggle('hidden');
       };
+      window.loginWithGoogle = () => window.authFunctions.loginWithGoogle();
       window.goBackToCategories = () => window.appLogic.goBackToCategories();
       window.goBackToLessons = () => window.appLogic.goBackToLessons();
       window.selectVoice = (gender) => window.appLogic.selectVoice(gender);

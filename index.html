@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apply - Aprende Inglés</title>
+    
+    <!-- Configuración PWA: Enlace al manifiesto de la aplicación -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6d28d9">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -147,7 +152,7 @@
             </div>
         </header>
 
-        <!-- Tarjetas de Categorías Pastel (Formato exacto a la foto) -->
+        <!-- Tarjetas de Categorías Pastel -->
         <div id="category-selection" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"></div>
         
         <div id="lessons-view-container" class="hidden">
@@ -752,7 +757,6 @@
                       (v.name.includes('Natural') || v.name.includes('Guy') || v.name.includes('Google US English') || v.name.includes('David') || v.name.includes('Male')));
                   if (maleVoice) utterance.voice = maleVoice;
               } else {
-                  // Ajuste para voz femenina jovial, alegre y clara en inglés de EE.UU.
                   utterance.pitch = 1.1; 
                   const priorityFemaleVoices = [
                       'Google US English', 'Samantha', 'Ava', 'Jenny', 'Joanna', 'Kimberly', 'Victoria', 'Zira', 'Female'
@@ -878,6 +882,17 @@
       }).catch(console.error);
 
       window.appLogic.showPresentation();
+    </script>
+
+    <!-- Configuración PWA: Registro del Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then((reg) => console.log('Service Worker registrado con éxito:', reg.scope))
+            .catch((err) => console.log('Error al registrar el Service Worker:', err));
+        });
+      }
     </script>
 </body>
 </html>

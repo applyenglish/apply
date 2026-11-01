@@ -789,6 +789,19 @@
               resultEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Escuchando...';
               audioContainer.innerHTML = '';
 
+              let isFinished = false;
+              let recognition = null;
+              let recordingTimer = null;
+
+              // Detener cualquier grabación o reconocimiento previo activo
+              if (window._currentMediaRecorder && window._currentMediaRecorder.state !== 'inactive') {
+                  window._currentMediaRecorder.stop();
+              }
+              if (window._currentRecognition) {
+                  try { window._currentRecognition.stop(); } catch(e){}
+              }
+
+              // Prepara grabación de audio local
               if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                   navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
                       const mediaRecorder = new MediaRecorder(stream);
@@ -810,38 +823,76 @@
                   }).catch(console.error);
               }
 
+              // Configurar Reconocimiento de Voz Web API
               const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
               if (!SpeechRecognition) {
                   resultEl.textContent = 'El navegador no soporta reconocimiento de voz.';
                   return;
               }
 
-              const recognition = new SpeechRecognition();
+              recognition = new SpeechRecognition();
               recognition.lang = 'en-US';
-              recognition.start();
+              recognition.interimResults = true; // Permite capturar resultados parciales mientras hablas
+              recognition.continuous = false;
+              window._currentRecognition = recognition;
+
+              let finalTranscript = '';
 
               recognition.onresult = (e) => {
-                  const transcript = e.results[0][0].transcript;
-                  const cleanExpected = expectedText.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
-                  const cleanActual = transcript.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+                  let currentTranscript = '';
+                  for (let i = e.resultIndex; i < e.results.length; ++i) {
+                      currentTranscript += e.results[i][0].transcript;
+                  }
+                  if (currentTranscript) {
+                      finalTranscript = currentTranscript;
+                      resultEl.innerHTML = `<span class="text-purple-600 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Procesando: "${finalTranscript}"</span>`;
+                  }
+              };
+
+              const finishRecognition = () => {
+                  if (isFinished) return;
+                  isFinished = true;
+                  clearTimeout(recordingTimer);
 
                   if (window._currentMediaRecorder && window._currentMediaRecorder.state !== 'inactive') {
                       window._currentMediaRecorder.stop();
                   }
 
-                  if (cleanExpected === cleanActual) {
-                      resultEl.innerHTML = `<span class="text-green-600 font-semibold"><i class="fa-solid fa-check"></i> ¡Excelente! Dijiste: "${transcript}"</span>`;
+                  if (finalTranscript.trim().length > 0) {
+                      const cleanExpected = expectedText.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+                      const cleanActual = finalTranscript.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+
+                      if (cleanExpected === cleanActual) {
+                          resultEl.innerHTML = `<span class="text-green-600 font-semibold"><i class="fa-solid fa-check"></i> ¡Excelente! Dijiste: "${finalTranscript}"</span>`;
+                      } else {
+                          resultEl.innerHTML = `<span class="text-amber-600 font-semibold"><i class="fa-solid fa-exclamation-triangle"></i> Dijiste: "${finalTranscript}"</span>`;
+                      }
                   } else {
-                      resultEl.innerHTML = `<span class="text-amber-600 font-semibold"><i class="fa-solid fa-exclamation-triangle"></i> Dijiste: "${transcript}"</span>`;
+                      resultEl.innerHTML = `<span class="text-amber-600">No se detectó audio claro. Inténtalo de nuevo.</span>`;
                   }
               };
+
+              recognition.onend = finishRecognition;
 
               recognition.onerror = (e) => {
-                  if (window._currentMediaRecorder && window._currentMediaRecorder.state !== 'inactive') {
-                      window._currentMediaRecorder.stop();
+                  if (e.error === 'no-speech') {
+                      finishRecognition();
+                  } else {
+                      if (window._currentMediaRecorder && window._currentMediaRecorder.state !== 'inactive') {
+                          window._currentMediaRecorder.stop();
+                      }
+                      resultEl.innerHTML = `<span class="text-red-500">Error: ${e.error}</span>`;
                   }
-                  resultEl.innerHTML = `<span class="text-red-500">Error: ${e.error}</span>`;
               };
+
+              recognition.start();
+
+              // Temporizador de seguridad (Detiene la escucha a los 6 segundos si Chrome no lo cierra solo)
+              recordingTimer = setTimeout(() => {
+                  if (!isFinished) {
+                      try { recognition.stop(); } catch(err){}
+                  }
+              }, 6000);
           }
 
           return {

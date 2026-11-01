@@ -304,6 +304,7 @@
           GoogleAuthProvider,
           signInWithRedirect,
           signInWithPopup,
+          getRedirectResult,
           signOut,
           createUserWithEmailAndPassword,
           signInWithEmailAndPassword,
@@ -324,7 +325,12 @@
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
+      
+      // Inicialización limpia del proveedor de Google con parámetros de inicio rápido
       const googleProvider = new GoogleAuthProvider();
+      googleProvider.setCustomParameters({
+          prompt: 'select_account'
+      });
 
       window.authFunctions = {
           loginWithGoogle: async () => {
@@ -334,19 +340,28 @@
               if (btnText) btnText.textContent = 'Conectando...';
 
               try {
-                  await signInWithPopup(auth, googleProvider);
+                  // Intento primario por Popup
+                  const result = await signInWithPopup(auth, googleProvider);
+                  if (result && result.user) {
+                      window.appLogic.closeAuthModal(null, true);
+                      window.appLogic.showAppContent();
+                  }
               } catch (error) {
-                  if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+                  console.warn("Intento de Popup fallido o bloqueado por el navegador:", error);
+                  
+                  // Fallback automático por redirección si el popup es bloqueado
+                  if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
                       try {
                           await signInWithRedirect(auth, googleProvider);
                       } catch (redirectError) {
+                          console.error("Error en redirección de Google:", redirectError);
                           if (errorEl) {
-                              errorEl.textContent = 'Asegúrate de agregar este dominio en tu consola de Firebase.';
+                              errorEl.textContent = 'El navegador bloqueó la conexión. Recarga e intenta de nuevo.';
                               errorEl.classList.remove('hidden');
                           }
                       }
                   } else if (errorEl) {
-                      errorEl.textContent = 'Error al conectar con Google.';
+                      errorEl.textContent = 'No se pudo conectar con Google. Revisa tu conexión.';
                       errorEl.classList.remove('hidden');
                   }
               } finally {
@@ -948,13 +963,23 @@
       onAuthStateChanged(auth, async (user) => {
           const appState = window.appLogic.getState();
           if (user) {
-              appState.currentUser = { name: user.displayName || user.email, email: user.email, uid: user.uid, isAnonymous: user.isAnonymous };
+              appState.currentUser = { name: user.displayName || user.email, email: user.email, uid: user.uid, isAnonymous: user.isAnonymous, photoURL: user.photoURL };
               window.appLogic.closeAuthModal(null, true);
               window.appLogic.showAppContent();
           } else {
               appState.currentUser = null;
           }
           window.appLogic.updateAuthUI();
+      });
+
+      // Procesamiento automático del resultado de autenticación tras redirección
+      getRedirectResult(auth).then((result) => {
+          if (result && result.user) {
+              window.appLogic.closeAuthModal(null, true);
+              window.appLogic.showAppContent();
+          }
+      }).catch((error) => {
+          console.error("Error procesando redirección de Google:", error);
       });
 
       window.addEventListener('DOMContentLoaded', () => {

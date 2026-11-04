@@ -27,7 +27,7 @@
     #splash-screen { display: grid; place-items: center; height: 100vh; width: 100vw; background-color: #f8fafc; font-family: 'Poppins', sans-serif; text-align: center; position: fixed; top: 0; left: 0; z-index: 100; transition: opacity 0.5s ease-out, transform 0.5s ease-out; }
     .dark #splash-screen { background-color: #0f172a; }
     #splash-screen.fade-out { opacity: 0; transform: scale(0.95); pointer-events: none; }
-    .splash-container { display: flex; flex-direction: column; align-items: center; }
+    .splash-container { display: flex; flex-direction: column; align-items: center; padding: 1.5rem; width: 100%; max-width: 450px; }
     .logo-container { display: flex; align-items: center; justify-content: center; gap: 1.25rem; }
     .logo-icon { position: relative; width: 80px; height: 80px; background: linear-gradient(135deg, #a855f7, #6d28d9); border-radius: 28%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(109, 40, 217, 0.2); }
     .letter-a { font-size: 48px; font-weight: 600; color: white; }
@@ -43,9 +43,9 @@
     .auth-form .form-submit { width: 100%; padding: 0.75rem 1rem; border-radius: 0.5rem; font-weight: 600; color: white; background: linear-gradient(135deg, #a855f7, #6d28d9); margin-top: 1rem; }
 
     .header-logo-btn { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
-    .header-logo-icon { width: 48px; height: 48px; background: linear-gradient(135deg, #a855f7, #6d28d9); border-radius: 28%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(109, 40, 217, 0.2); }
-    .header-logo-icon .letter-a { font-size: 28px; font-weight: 600; color: white; }
-    .header-logo-text { font-family: 'Poppins', sans-serif; font-size: 2.25rem; font-weight: 600; color: #4c1d95; }
+    .header-logo-icon { width: 44px; height: 44px; background: linear-gradient(135deg, #a855f7, #6d28d9); border-radius: 28%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(109, 40, 217, 0.2); }
+    .header-logo-icon .letter-a { font-size: 24px; font-weight: 600; color: white; }
+    .header-logo-text { font-family: 'Poppins', sans-serif; font-size: 1.8rem; font-weight: 600; color: #4c1d95; }
     .dark .header-logo-text { color: #d1d5db; }
 
     .progress-ring { position: relative; width: 60px; height: 60px; }
@@ -138,14 +138,14 @@
 
 <!-- Contenido Principal -->
 <div id="app-content" class="hidden container mx-auto p-4 md:p-8 max-w-7xl">
-    <header class="flex items-center justify-between mb-8 gap-4">
+    <header class="flex items-center justify-between mb-8 gap-4 flex-wrap">
         <button onclick="window.appLogic.showPresentation()" class="header-logo-btn cursor-pointer">
             <div class="header-logo-icon"><span class="letter-a">A</span></div>
             <div class="header-logo-text"><span>p</span><span>p</span><span>l</span><span>y</span></div>
         </button>
         <div class="flex items-center space-x-4">
-            <div id="auth-controls" class="flex items-center gap-3"></div>
-            <button id="theme-toggle" onclick="document.documentElement.classList.toggle('dark')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 dark:bg-dark-container shadow">
+            <div id="auth-controls"></div>
+            <button id="theme-toggle" onclick="document.documentElement.classList.toggle('dark')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 dark:bg-dark-container">
                 <i class="fa-solid fa-moon dark:hidden"></i>
                 <i class="fa-solid fa-sun hidden dark:block text-yellow-400"></i>
             </button>
@@ -553,7 +553,7 @@
               name: 'Invitado', 
               uid: 'guest_' + Date.now(), 
               isAnonymous: true,
-              photoURL: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' 
+              photoURL: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=200&auto=format&fit=crop'
           };
           window.appLogic.updateAuthUI();
           window.appLogic.showAppContent();
@@ -593,13 +593,13 @@
           const user = appState.currentUser;
           const authControls = document.getElementById('auth-controls');
           if (user) {
-              const avatarUrl = user.photoURL || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop';
+              const avatarUrl = user.photoURL || 'https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=200&auto=format&fit=crop';
               const displayName = user.name || user.displayName || 'Usuario';
               authControls.innerHTML = `
-                  <div class="flex items-center gap-2 bg-white dark:bg-dark-container px-3 py-1.5 rounded-full shadow border border-gray-200 dark:border-gray-700">
-                      <img src="${avatarUrl}" alt="Avatar" class="w-8 h-8 rounded-full object-cover border border-purple-500">
+                  <div class="flex items-center gap-2 bg-white dark:bg-dark-surface px-3 py-1.5 rounded-full shadow border border-gray-200 dark:border-gray-700">
+                      <img src="${avatarUrl}" alt="Avatar" class="w-8 h-8 rounded-full object-cover">
                       <span class="text-sm font-semibold">${displayName}</span>
-                      <button onclick="window.authFunctions.logoutUser()" class="text-xs text-red-500 hover:underline ml-2" title="Cerrar Sesión"><i class="fa-solid fa-right-from-bracket"></i></button>
+                      <button onclick="window.authFunctions.logoutUser()" class="text-xs text-red-500 hover:underline ml-1" title="Cerrar Sesión"><i class="fa-solid fa-right-from-bracket"></i></button>
                   </div>
               `;
           } else {
@@ -683,7 +683,7 @@
 
           detailContainer.innerHTML = `
               <div class="bg-white dark:bg-dark-surface p-6 rounded-2xl shadow-lg">
-                  <div class="flex items-center justify-between mb-4">
+                  <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
                       <h3 class="text-2xl font-bold">${lesson.title}</h3>
                       <label class="flex items-center gap-2 cursor-pointer bg-purple-50 dark:bg-dark-container px-3 py-1.5 rounded-lg border border-purple-200">
                           <input type="checkbox" ${isDone ? 'checked' : ''} onchange="window.appLogic.toggleComplete('${lesson.id}')" class="w-4 h-4 text-purple-600 rounded">
@@ -760,7 +760,7 @@
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.lang = 'en-US';
           utterance.rate = appState.speechRate;
-          utterance.volume = 1.0; // Volumen al máximo para evitar que se escuche bajo
+          utterance.volume = 1.0; // Máximo volumen en móvil
 
           const voices = window.speechSynthesis.getVoices();
           
@@ -790,7 +790,7 @@
 
       function startSpeechRecognition(index, expectedText) {
           const resultEl = document.getElementById(`recognition-result-${index}`);
-          resultEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Escuchando... Habla ahora';
+          resultEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Escuchando...';
 
           const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
           if (!SpeechRecognition) {
@@ -803,13 +803,11 @@
           recognition.interimResults = false;
           recognition.maxAlternatives = 1;
 
-          let hasProcessed = false;
+          let hasResult = false;
 
           recognition.onresult = (e) => {
-              if (hasProcessed) return;
-              hasProcessed = true;
+              hasResult = true;
               const transcript = e.results[0][0].transcript;
-              
               const cleanExpected = expectedText.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
               const cleanActual = transcript.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
 
@@ -821,22 +819,19 @@
           };
 
           recognition.onerror = (e) => {
-              if (hasProcessed) return;
-              hasProcessed = true;
-              resultEl.innerHTML = `<span class="text-red-500">No se detectó audio claro. Inténtalo de nuevo.</span>`;
+              resultEl.innerHTML = `<span class="text-red-500">Error: ${e.error}</span>`;
           };
 
           recognition.onend = () => {
-              if (!hasProcessed) {
-                  hasProcessed = true;
-                  resultEl.innerHTML = `<span class="text-amber-600">Tiempo agotado o sin audio. Intenta presionar de nuevo.</span>`;
+              if (!hasResult) {
+                  resultEl.innerHTML = `<span class="text-amber-600">No se detectó audio claro. Inténtalo de nuevo.</span>`;
               }
           };
 
           try {
               recognition.start();
           } catch (err) {
-              resultEl.innerHTML = `<span class="text-red-500">Error al iniciar el micrófono.</span>`;
+              resultEl.innerHTML = `<span class="text-red-500">Error al iniciar micrófono.</span>`;
           }
       }
 
@@ -858,11 +853,11 @@
       const appState = window.appLogic.getState();
       if (user) {
           appState.currentUser = { 
-              name: user.displayName || user.email, 
+              name: user.displayName || user.email.split('@')[0], 
               email: user.email, 
               uid: user.uid, 
               isAnonymous: user.isAnonymous,
-              photoURL: user.photoURL || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop'
+              photoURL: user.photoURL || 'https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=200&auto=format&fit=crop'
           };
           
           if (!user.isAnonymous) {
@@ -933,5 +928,6 @@
       if (installContainer) {
           installContainer.classList.add('hidden');
       }
+      console.log('PWA instalada con éxito');
   });
 </script>

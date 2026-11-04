@@ -724,7 +724,6 @@
                               <p class="phonetic-text">${item.phonetic}</p>
                               <p class="text-xs text-gray-500 mt-1">${lesson.dialogue_es[idx].text}</p>
                               <div id="recognition-result-${idx}" class="recognition-result text-xs"></div>
-                              <div id="audio-playback-container-${idx}"></div>
                           </div>
                       `).join('')}
                   </div>
@@ -761,6 +760,7 @@
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.lang = 'en-US';
           utterance.rate = appState.speechRate;
+          utterance.volume = 1.0; // Volumen al máximo para evitar que se escuche bajo
 
           const voices = window.speechSynthesis.getVoices();
           
@@ -790,36 +790,12 @@
 
       function startSpeechRecognition(index, expectedText) {
           const resultEl = document.getElementById(`recognition-result-${index}`);
-          const audioContainer = document.getElementById(`audio-playback-container-${index}`);
-          resultEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Escuchando...';
-          audioContainer.innerHTML = '';
+          resultEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Escuchando... Habla ahora';
 
           const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
           if (!SpeechRecognition) {
               resultEl.textContent = 'El navegador no soporta reconocimiento de voz.';
               return;
-          }
-
-          // Iniciar grabación de audio para respaldar
-          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-              navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-                  const mediaRecorder = new MediaRecorder(stream);
-                  let chunks = [];
-                  mediaRecorder.ondataavailable = e => chunks.push(e.data);
-                  mediaRecorder.onstop = () => {
-                      const blob = new Blob(chunks, { type: 'audio/webm' });
-                      const url = URL.createObjectURL(blob);
-                      audioContainer.innerHTML = `
-                          <div class="flex items-center space-x-2 mt-2 bg-purple-50 dark:bg-dark-surface p-2 rounded-lg border border-purple-100 dark:border-gray-700">
-                              <span class="text-xs font-semibold text-purple-600 dark:text-purple-300">Tu voz:</span>
-                              <audio controls src="${url}" class="h-8 w-full"></audio>
-                          </div>
-                      `;
-                      stream.getTracks().forEach(t => t.stop());
-                  };
-                  mediaRecorder.start();
-                  window._currentMediaRecorder = mediaRecorder;
-              }).catch(console.error);
           }
 
           const recognition = new SpeechRecognition();
@@ -834,10 +810,6 @@
               hasProcessed = true;
               const transcript = e.results[0][0].transcript;
               
-              if (window._currentMediaRecorder && window._currentMediaRecorder.state !== 'inactive') {
-                  window._currentMediaRecorder.stop();
-              }
-
               const cleanExpected = expectedText.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
               const cleanActual = transcript.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
 
@@ -851,26 +823,20 @@
           recognition.onerror = (e) => {
               if (hasProcessed) return;
               hasProcessed = true;
-              if (window._currentMediaRecorder && window._currentMediaRecorder.state !== 'inactive') {
-                  window._currentMediaRecorder.stop();
-              }
-              resultEl.innerHTML = `<span class="text-red-500">Error o silencio detectado: ${e.error}</span>`;
+              resultEl.innerHTML = `<span class="text-red-500">No se detectó audio claro. Inténtalo de nuevo.</span>`;
           };
 
           recognition.onend = () => {
               if (!hasProcessed) {
                   hasProcessed = true;
-                  if (window._currentMediaRecorder && window._currentMediaRecorder.state !== 'inactive') {
-                      window._currentMediaRecorder.stop();
-                  }
-                  resultEl.innerHTML = `<span class="text-amber-600">No se detectó voz clara. Intenta presionar de nuevo el micrófono.</span>`;
+                  resultEl.innerHTML = `<span class="text-amber-600">Tiempo agotado o sin audio. Intenta presionar de nuevo.</span>`;
               }
           };
 
           try {
               recognition.start();
           } catch (err) {
-              resultEl.innerHTML = `<span class="text-red-500">No se pudo iniciar el micrófono.</span>`;
+              resultEl.innerHTML = `<span class="text-red-500">Error al iniciar el micrófono.</span>`;
           }
       }
 
@@ -952,7 +918,6 @@
 
   if (installButton) {
       installButton.addEventListener('click', async () => {
-          if (!deferredPlayerPrompt = null;
           if (!deferredPrompt) return;
           deferredPrompt.prompt();
           const { outcome } = await deferredPrompt.userChoice;
